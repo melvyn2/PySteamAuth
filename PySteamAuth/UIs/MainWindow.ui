@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>569</height>
+    <height>547</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -103,7 +103,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>350</y>
+      <y>340</y>
       <width>261</width>
       <height>20</height>
      </rect>
@@ -155,20 +155,20 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>400</y>
+      <y>390</y>
       <width>171</width>
       <height>32</height>
      </rect>
     </property>
     <property name="text">
-     <string>Clear maFiles folder</string>
+     <string>Remove Authenticator</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="pushButton_6">
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>440</y>
+      <y>480</y>
       <width>171</width>
       <height>32</height>
      </rect>
@@ -181,7 +181,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>360</y>
+      <y>350</y>
       <width>261</width>
       <height>41</height>
      </rect>
@@ -198,17 +198,17 @@ p, li { white-space: pre-wrap; }
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_5">
+   <widget class="QPushButton" name="pushButton_4">
     <property name="geometry">
      <rect>
-      <x>60</x>
-      <y>480</y>
-      <width>191</width>
+      <x>70</x>
+      <y>420</y>
+      <width>171</width>
       <height>32</height>
      </rect>
     </property>
     <property name="text">
-     <string>Manage Authenticator</string>
+     <string>Create Backup Codes</string>
     </property>
    </widget>
    <widget class="Line" name="line_1">
@@ -228,7 +228,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>60</x>
-      <y>260</y>
+      <y>250</y>
       <width>181</width>
       <height>31</height>
      </rect>
@@ -262,7 +262,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>300</y>
+      <y>290</y>
       <width>151</width>
       <height>20</height>
      </rect>
@@ -275,7 +275,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>330</y>
+      <y>320</y>
       <width>231</width>
       <height>20</height>
      </rect>
@@ -284,16 +284,19 @@ p, li { white-space: pre-wrap; }
      <string>Auto-Accept Market Transactions</string>
     </property>
    </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>300</width>
-     <height>22</height>
-    </rect>
-   </property>
+   <widget class="QPushButton" name="pushButton_5">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>450</y>
+      <width>171</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Destroy Backup Codes</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
