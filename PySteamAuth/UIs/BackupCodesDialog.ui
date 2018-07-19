@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>390</width>
+    <height>190</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,9 +16,9 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>210</x>
-     <y>250</y>
-     <width>161</width>
+     <x>290</x>
+     <y>150</y>
+     <width>81</width>
      <height>32</height>
     </rect>
    </property>
@@ -26,63 +26,35 @@
     <enum>Qt::Horizontal</enum>
    </property>
    <property name="standardButtons">
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+    <set>QDialogButtonBox::Close</set>
    </property>
   </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>40</y>
-     <width>81</width>
-     <height>21</height>
+     <x>20</x>
+     <y>30</y>
+     <width>361</width>
+     <height>51</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>16</pointsize>
-    </font>
-   </property>
    <property name="text">
-    <string>Warning:</string>
+    <string>These are backup codes you can use instead of actual
+codes if your authenticator becomes inaccessible. Write
+them down and keep them in a safe place.</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>60</y>
-     <width>331</width>
-     <height>161</height>
+     <x>20</x>
+     <y>90</y>
+     <width>351</width>
+     <height>51</height>
     </rect>
    </property>
    <property name="text">
-    <string>Please make a backup of your maFiles before
-deleting them. Simply copy the maFiles folder to
-another location. The maFiles folder can be located
-by pressing the 'Open maFiles folder' button on the
-main screen. If youse lose these files, you may
-be locked out of your account. Disable your
-Mobile Authenticator before completely deleting
-these files. You can manage your mobile authenticator
-by pressing the 'Manage Authenticator' button on
-the main screen</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>250</x>
-     <y>230</y>
-     <width>60</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Delete?</string>
+    <string/>
    </property>
   </widget>
  </widget>

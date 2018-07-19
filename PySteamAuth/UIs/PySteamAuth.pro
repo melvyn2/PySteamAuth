@@ -18,5 +18,6 @@ FORMS += \
     PhoneDialog.ui \
     CaptchaDialog.ui \
     ErrorDialog.ui \
-    DeleteDialog.ui \
-    ConfirmationDialog.ui
+    ConfirmationDialog.ui \
+    BackupCodesDialog.ui \
+    BackupCodesDeleteDialog.ui

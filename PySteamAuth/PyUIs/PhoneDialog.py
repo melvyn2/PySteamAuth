@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/melvyn/PythonSteamAuth-GUI/PySteamAuth/UIs/PhoneDialog.ui'
+# Form implementation generated from reading ui file '/Users/melvyn/PySteamAuth/PySteamAuth/UIs/PhoneDialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.10.1
 #

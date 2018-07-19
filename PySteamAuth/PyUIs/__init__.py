@@ -1,1 +1,1 @@
-from . import CaptchaDialog, ConfirmationDialog, DeleteDialog, ErrorDialog, LoginDialog, MainWindow, PhoneDialog, SetupDialog
+from . import BackupCodesDeleteDialog, BackupCodesDialog, CaptchaDialog, ConfirmationDialog, ErrorDialog, LoginDialog, MainWindow, PhoneDialog, SetupDialog

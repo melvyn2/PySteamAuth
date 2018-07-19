@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.6
 
 #   Copyright (C) 2018  melvyn2
 #
@@ -32,7 +32,7 @@ from Cryptodome.Hash import HMAC, SHA1
 from steam import guard, webauth
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtNetwork
 # noinspection PyUnresolvedReferences
-import PyUIs
+from . import PyUIs
 
 
 class Empty(object):
@@ -57,9 +57,6 @@ class TimerThread(QtCore.QThread):
 		self.time = time
 		self.sa = sa
 
-	def stop(self):
-		self.terminate()
-
 	# noinspection PyUnresolvedReferences
 	def run(self):
 		while True:
@@ -72,10 +69,27 @@ class TimerThread(QtCore.QThread):
 
 
 def restart():
+	timer_thread.terminate()
+	try:
+		auto_accept_thread.terminate()
+	except (NameError, AttributeError):
+		pass
 	if getattr(sys, 'frozen', False):
-		os.execl(sys.executable, '')
+		os.execl(sys.executable, sys.executable)
 	else:
-		os.execl(os.path.join(os.path.dirname(os.path.abspath(__file__)), __file__), '')
+		os.execl(sys.executable, sys.executable,
+				os.path.join(os.path.dirname(os.path.abspath(__file__)), __file__))
+
+
+# noinspection PyArgumentList
+def error_popup(message, header=None):
+	error_dialog = QtWidgets.QDialog()
+	error_ui = PyUIs.ErrorDialog.Ui_Dialog()
+	error_ui.setupUi(error_dialog)
+	if header:
+		error_ui.label.setText(header)
+	error_ui.label_2.setText(message)
+	error_dialog.exec_()
 
 
 def get_tradeid_from_url(url):
@@ -91,40 +105,67 @@ def generate_query(tag, sa):
 				get_conf_hash_for_time(sa.get_time(), tag, sa.secrets['identity_secret']), sa.get_time(), tag)
 
 
+# noinspection PyArgumentList
+def backup_codes_popup(sa):
+	try:
+		codes = ' '.join(sa.create_emergency_codes())
+	except guard.SteamAuthenticatorError as e:
+		error_popup(e)
+		return
+	bcodes_dialog = QtWidgets.QDialog()
+	bcodes_ui = PyUIs.BackupCodesDialog.Ui_Dialog()
+	bcodes_ui.setupUi(bcodes_dialog)
+	bcodes_ui.label_2.setText(codes)
+	bcodes_dialog.exec_()
+
+
+# noinspection PyArgumentList
+def backup_codes_delete(sa):
+	endfunc = Empty()
+	endfunc.endfunc = False
+	bcodes_dialog = QtWidgets.QDialog()
+	bcodes_ui = PyUIs.BackupCodesDeleteDialog.Ui_Dialog()
+	bcodes_ui.setupUi(bcodes_dialog)
+	bcodes_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+	bcodes_dialog.exec_()
+	if endfunc.endfunc:
+		return
+	try:
+		sa.destroy_emergency_codes()
+	except guard.SteamAuthenticatorError as e:
+		error_popup(e)
+
+
 def test_mafiles(path):
 	try:
-		manifest = json.loads(open(os.path.join(path, 'manifest.json')).read())
-		ma_file = json.loads(open(os.path.join(path, manifest['entries'][0]['filename'])).read())
-		sa = guard.SteamAuthenticator(secrets=ma_file)
+		with open(os.path.join(path, 'manifest.json')) as manifest_file:
+			test_manifest = json.loads(manifest_file.read())
+		with open(os.path.join(path, test_manifest['entries'][0]['filename'])) as maf_file:
+			maf = json.loads(maf_file.read())
+		sa = guard.SteamAuthenticator(secrets=maf)
 		sa.get_code()
 	except (IOError, guard.SteamAuthenticatorError):
 		return False
 	return True
 
 
-# noinspection PyArgumentList
-def remove_mafiles():
-	delete_dialog = QtWidgets.QDialog()
-	delete_ui = PyUIs.DeleteDialog.Ui_Dialog()
-	delete_ui.setupUi(delete_dialog)
-	delete_ui.retranslateUi(delete_dialog)
-	delete_ui.buttonBox.accepted.connect(lambda: (shutil.rmtree(mafiles_path), restart()))
-	delete_dialog.exec_()
-
-
 def refresh_session(sa):
 	url = 'https://api.steampowered.com/IMobileAuthService/GetWGToken/v0001'
-	r = requests.post(url, data={'access_token': urllib.parse.quote_plus(sa.secrets['Session']['OAuthToken'])})
-	response = json.loads(r.text)['response']
-	token = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token']
-	token_secure = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token_secure']
-	sa.secrets['Session']['SteamLogin'] = token
-	sa.secrets['Session']['SteamLoginSecure'] = token_secure
-	manifest = json.loads(open(os.path.join(mafiles_path, 'manifest.json')).read())
-	open(os.path.join(mafiles_path, manifest['entries'][0]['filename']), 'w').write(json.dumps(sa.secrets))
+	try:
+		r = requests.post(url, data={'access_token': urllib.parse.quote_plus(sa.secrets['Session']['OAuthToken'])})
+		response = json.loads(r.text)['response']
+		token = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token']
+		token_secure = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token_secure']
+		sa.secrets['Session']['SteamLogin'] = token
+		sa.secrets['Session']['SteamLoginSecure'] = token_secure
+		with open(os.path.join(mafiles_path, manifest['entries'][0]['filename']), 'w') as maf:
+			maf.write(json.dumps(sa.secrets))
+		return True
+	except requests.exceptions.ConnectionError:
+		return False
 
 
-# noinspection PyTypeChecker
+# noinspection PyTypeChecker,PyTypeChecker
 def get_conf_hash_for_time(time, tag, id_secret):
 	decoded = bytearray(base64.b64decode(id_secret))
 	n2 = 8
@@ -154,30 +195,31 @@ def get_conf_hash_for_time(time, tag, id_secret):
 
 
 def auto_accept(sa, trades, markets):
-	while True:
-		if trades or markets:
+	if trades or markets:
+		while True:
 			accept_all(sa, trades, markets)
-		timemodule.sleep(5)
+			timemodule.sleep(5)
 
 
 def set_auto_accept(sa, trades_checkbox, markets_checkbox):
 	global auto_accept_thread
 	try:
 		auto_accept_thread.terminate()
-	except NameError:
+	except (NameError, AttributeError):
 		pass
 	auto_accept_thread = multiprocessing.Process(target=auto_accept, args=(sa, trades_checkbox.isChecked(),
 																			markets_checkbox.isChecked()))
 	auto_accept_thread.start()
 
-	manifest = json.loads(open(os.path.join(mafiles_path, 'manifest.json')).read())
 	manifest['auto_confirm_trades'] = trades_checkbox.isChecked()
 	manifest['auto_confirm_market_transactions'] = markets_checkbox.isChecked()
-	open(os.path.join(mafiles_path, 'manifest.json'), 'w').write(json.dumps(manifest))
+	with open(os.path.join(mafiles_path, 'manifest.json'), 'w') as manifest_file:
+		manifest_file.write(json.dumps(manifest))
 
 
 def fetch_confirmations(sa):
-	refresh_session(sa)
+	if not refresh_session(sa):
+		error_popup('Failed to refresh session.', 'Warning:')
 	conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
 	jar = requests.cookies.RequestsCookieJar()
 	jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
@@ -204,7 +246,8 @@ def fetch_confirmations(sa):
 def accept_all(sa, trades=True, market=True):
 	data = 'op=allow&' + generate_query('allow', sa)
 	confs = fetch_confirmations(sa)
-	refresh_session(sa)
+	if not refresh_session(sa):
+		error_popup('Failed to refresh session.', 'Warning:')
 	jar = requests.cookies.RequestsCookieJar()
 	jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
 	jar.set('mobileClient', 'android', path='/', domain='.steamcommunity.com')
@@ -228,13 +271,13 @@ def accept_all(sa, trades=True, market=True):
 		url = 'https://steamcommunity.com/mobileconf/multiajaxop'
 		for i in confs:
 			data += '&cid[]=' + i.id + '&ck[]=' + i.key
-		print(data)
 		requests.post(url, data=data, cookies=jar)
 
 
 # noinspection PyArgumentList
 def open_conf_dialog(sa):
-	refresh_session(sa)
+	if not refresh_session(sa):
+		error_popup('Failed to refresh session.', 'Warning:')
 	conf_dialog = QtWidgets.QDialog()
 	conf_ui = PyUIs.ConfirmationDialog.Ui_Dialog()
 	conf_ui.setupUi(conf_dialog)
@@ -306,14 +349,13 @@ window.GetValueFromLocalURL =
 		.replace('{2}', generate_query('details' + tradeid.id, sa)))))
 	conf_ui.webEngineView.load(QtCore.QUrl(url))
 	loop.exec_()
-	conf_ui.webEngineView.page().toHtml(lambda x: open('temp.html', 'w').write(x))
 	conf_ui.webEngineView.show()
 	conf_dialog.exec_()
 
 
 # noinspection PyArgumentList
 def get_mobilewebauth():
-	endfunc = Empty
+	endfunc = Empty()
 	endfunc.endfunc = False
 	login_dialog = QtWidgets.QDialog()
 	login_ui = PyUIs.LoginDialog.Ui_Dialog()
@@ -395,7 +437,7 @@ def get_mobilewebauth():
 
 # noinspection PyArgumentList
 def add_authenticator():
-	endfunc = Empty
+	endfunc = Empty()
 	endfunc.endfunc = False
 	mwa = get_mobilewebauth()
 	sa = guard.SteamAuthenticator(medium=mwa)
@@ -405,7 +447,7 @@ def add_authenticator():
 		code_ui.setupUi(code_dialog)
 		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
 		code_ui.label.setText('This account is missing a phone number. Type yours below to add it.\n'
-								'Format: +CC PhoneNumber Eg. +1 123-456-7890')
+								'Format: +cC PhoneNumber Eg. +1 123-456-7890')
 		code_dialog.exec_()
 		if endfunc.endfunc:
 				return
@@ -418,18 +460,10 @@ def add_authenticator():
 			if endfunc.endfunc:
 				return
 			if not sa.confirm_phone_number(code_ui.lineEdit.text()):
-				error_dialog = QtWidgets.QDialog()
-				error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-				error_ui.setupUi(error_dialog)
-				error_ui.label_2.setText('Failed to confirm phone number.')
-				error_dialog.exec_()
+				error_popup('Failed to confirm phone number')
 				return
 		else:
-			error_dialog = QtWidgets.QDialog()
-			error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-			error_ui.setupUi(error_dialog)
-			error_ui.label_2.setText('Failed to add phone number.')
-			error_dialog.exec_()
+			error_popup('Failed to add phone number.')
 			return
 	try:
 		sa.add()
@@ -450,38 +484,29 @@ def add_authenticator():
 				sa.remove()
 				sa.add()
 			except guard.SteamAuthenticatorError as e:
-				error_dialog = QtWidgets.QDialog()
-				error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-				error_ui.setupUi(error_dialog)
-				error_ui.label_2.setText(e)
-				error_dialog.exec_()
+				error_popup(e)
 				return
 		else:
-			error_dialog = QtWidgets.QDialog()
-			error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-			error_ui.setupUi(error_dialog)
-			error_ui.label_2.setText(e)
-			error_dialog.exec_()
+			error_popup(e)
 			return
 	if os.path.isdir(mafiles_path):
-		if os.listdir(mafiles_path):
-			error_dialog = QtWidgets.QDialog()
-			error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-			error_ui.setupUi(error_dialog)
-			error_ui.label_2.setText('The maFiles folder in the app folder is not empty.\nPlease remove it.')
-			error_dialog.exec_()
+		if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+			error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
 			return
+		else:
+			shutil.rmtree(mafiles_path)
 	os.mkdir(mafiles_path)
-	open(os.path.join(mafiles_path, mwa.steam_id + '.maFile'), 'w').write(json.dumps(sa.secrets))
-	open(os.path.join(mafiles_path, 'manifest.json'), 'w').write(json.dumps(
-		{'periodic_checking': False, 'first_run': True, 'encrypted': False, 'periodic_checking_interval': 5,
-		'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
-		'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
-					'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
+	with open(os.path.join(mafiles_path, mwa.steam_id + '.maFile'), 'w') as maf:
+		maf.write(json.dumps(sa.secrets))
+	with open(os.path.join(mafiles_path, 'manifest.json'), 'w') as manifest_file:
+		manifest_file.write(json.dumps(
+			{'periodic_checking': False, 'first_run': True, 'encrypted': False, 'periodic_checking_interval': 5,
+			'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
+			'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
+						'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
 	revoc_dialog = QtWidgets.QDialog()
 	revoc_ui = PyUIs.ErrorDialog.Ui_Dialog()
 	revoc_ui.setupUi(revoc_dialog)
-	# noinspection PyTypeChecker
 	revoc_ui.label.setText(sa.secrets['revocation_code'])
 	revoc_ui.label_2.setText('This is your revocation code. Write it down physically and keep it.\n' +
 							'You will need it in case you lose your authenticator.')
@@ -502,6 +527,32 @@ def add_authenticator():
 
 
 # noinspection PyArgumentList
+def remove_authenticator():
+	mwa = get_mobilewebauth()
+	sa = guard.SteamAuthenticator(medium=mwa)
+	endfunc = Empty()
+	endfunc.endfunc = False
+	code_dialog = QtWidgets.QDialog()
+	code_ui = PyUIs.PhoneDialog.Ui_Dialog()
+	code_ui.setupUi(code_dialog)
+	code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+	code_ui.label.setText('Enter your revocatiion code to remove this authenticator.\n'
+							'Note that you will receive a 15-day trade hold upon deactivating your authenticator.')
+	code_dialog.exec_()
+	if endfunc.endfunc:
+		return
+	sa.secrets = {'revocation_code': code_ui.lineEdit.text()}
+	sa.revocation_code = code_ui.lineEdit.text()
+	try:
+		sa.remove()
+	except guard.SteamAuthenticatorError as e:
+		error_popup(e)
+		return
+	shutil.rmtree(mafiles_path)
+	restart()
+
+
+# noinspection PyArgumentList
 def copy_mafiles():
 	while True:
 		file_dialog = QtWidgets.QFileDialog()
@@ -509,39 +560,37 @@ def copy_mafiles():
 		if f == '':
 			break
 		if not test_mafiles(f):
-			error_dialog = QtWidgets.QDialog()
-			error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-			error_ui.setupUi(error_dialog)
-			error_ui.label_2.setText('The selected folder does not contain valid maFiles.')
-			error_dialog.exec_()
+			error_popup('The selected folder does not contain valid maFiles.')
 			continue
 		if os.path.isdir(mafiles_path):
-			if os.listdir(mafiles_path):
-				error_dialog = QtWidgets.QDialog()
-				error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-				error_ui.setupUi(error_dialog)
-				error_ui.label_2.setText('The maFiles folder in the app folder is not empty.\nPlease remove it.')
-				error_dialog.exec_()
+			if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+				error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
 				continue
+			else:
+				shutil.rmtree(mafiles_path)
 		shutil.copytree(f, mafiles_path)
 		break
 
 
-# noinspection PyArgumentList,PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyArgumentList
 def main():
-	global mafiles_path
-	global auto_accept_thread
+	global mafiles_path, app, manifest, timer_thread, main_window
 	mafiles_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)
 								else os.path.dirname(os.path.abspath(__file__)), 'maFiles')
 	app = QtWidgets.QApplication(sys.argv)
 	while True:
 		try:
-			manifest = json.loads(open(os.path.join(mafiles_path, 'manifest.json')).read())
-			ma_file = json.loads(open(os.path.join(mafiles_path, manifest['entries'][0]['filename'])).read())
+			with open(os.path.join(mafiles_path, 'manifest.json')) as manifest_file:
+				manifest = json.loads(manifest_file.read())
+			with open(os.path.join(mafiles_path, manifest['entries'][0]['filename'])) as maf_file:
+				maf = json.loads(maf_file.read())
 			if not test_mafiles(mafiles_path):
 				raise IOError()
 			break
-		except (IOError, ValueError, TypeError, IndexError):
+		except (IOError, ValueError, TypeError, IndexError, KeyError):
+			if os.path.isdir(mafiles_path):
+				if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+					error_popup('Failed to load maFiles.')
 			setup_dialog = QtWidgets.QDialog()
 			setup_ui = PyUIs.SetupDialog.Ui_Dialog()
 			setup_ui.setupUi(setup_dialog)
@@ -550,7 +599,7 @@ def main():
 			setup_ui.pushButton_3.clicked.connect(sys.exit)
 			setup_dialog.setFixedSize(setup_dialog.size())
 			setup_dialog.exec_()
-	sa = guard.SteamAuthenticator(ma_file)
+	sa = guard.SteamAuthenticator(maf)
 	main_window = QtWidgets.QMainWindow()
 	main_ui = PyUIs.MainWindow.Ui_MainWindow()
 	main_ui.setupUi(main_window)
@@ -561,26 +610,24 @@ def main():
 	main_ui.checkBox_2.setChecked(manifest['auto_confirm_market_transactions'])
 	main_ui.pushButton_1.clicked.connect(lambda: accept_all(sa))
 	main_ui.pushButton_2.clicked.connect(lambda: open_conf_dialog(sa))
-	main_ui.pushButton_3.clicked.connect(lambda: remove_mafiles())
-	main_ui.pushButton_4.clicked.connect(lambda: webbrowser.open('file://' + mafiles_path.replace('\\', '/')))
-	main_ui.pushButton_5.clicked.connect(lambda: webbrowser.open('https://store.steampowered.com/twofactor/manage'))
+	main_ui.pushButton_3.clicked.connect(remove_authenticator)
+	main_ui.pushButton_4.clicked.connect(lambda: backup_codes_popup(sa))
+	main_ui.pushButton_5.clicked.connect(lambda: backup_codes_delete(sa))
+	main_ui.pushButton_6.clicked.connect(lambda: webbrowser.open('file://' + mafiles_path.replace('\\', '/')))
 	main_window.setFixedSize(main_window.size())
 	timer_thread = TimerThread(sa, 30 - (sa.get_time() % 30))
-	timer_thread.bar_update.connect(lambda x: main_ui.progressBar.setValue(x))
-	timer_thread.code_update.connect(lambda x: main_ui.textEdit.setText(x))
-
+	timer_thread.bar_update.connect(main_ui.progressBar.setValue)
+	timer_thread.code_update.connect(main_ui.textEdit.setText)
 	timer_thread.start()
 	main_window.show()
 	app.exec_()
 
-	timer_thread.stop()
+	timer_thread.terminate()
 	try:
 		auto_accept_thread.terminate()
-	except NameError:
+	except (NameError, AttributeError):
 		pass
-	del main_window
-	del app
 
 
 if __name__ == '__main__':
-	main()
+	sys.exit(main())
