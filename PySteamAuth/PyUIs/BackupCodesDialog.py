@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/melvyn/PySteamAuth/PySteamAuth/UIs/BackupCodesDialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -32,7 +32,7 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        Dialog.setWindowTitle(_translate("Dialog", "Backup Codes"))
         self.label.setText(_translate("Dialog", "These are backup codes you can use instead of actual\n"
 "codes if your authenticator becomes inaccessible. Write\n"
 "them down and keep them in a safe place."))

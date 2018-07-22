@@ -31,8 +31,17 @@ import base64
 from Cryptodome.Hash import HMAC, SHA1
 from steam import guard, webauth
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtNetwork
-# noinspection PyUnresolvedReferences
 from . import PyUIs
+
+
+if sys.platform == 'win32':
+	import struct
+	if struct.calcsize('P') == 4:
+		print('WARNING: 32-bit versions of Windows may cause issues.'
+				' If problems occur, try using a 64-bit OS to see if that resolves your issue.')
+
+if not(sys.version_info.major == 3 and sys.version_info.minor == 6):
+	raise SystemExit('ERROR: Requires python 3.6')
 
 
 class Empty(object):
@@ -88,6 +97,7 @@ def error_popup(message, header=None):
 	error_ui.setupUi(error_dialog)
 	if header:
 		error_ui.label.setText(header)
+		error_dialog.setWindowTitle(header)
 	error_ui.label_2.setText(message)
 	error_dialog.exec_()
 
@@ -405,6 +415,7 @@ def get_mobilewebauth():
 		code_ui = PyUIs.PhoneDialog.Ui_Dialog()
 		code_ui.setupUi(code_dialog)
 		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+		code_dialog.setWindowTitle('Email code')
 		code_ui.label.setText('Enter the email code you have received:')
 		while True:
 			code_dialog.exec_()
@@ -420,6 +431,7 @@ def get_mobilewebauth():
 		code_ui = PyUIs.PhoneDialog.Ui_Dialog()
 		code_ui.setupUi(code_dialog)
 		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+		code_dialog.setWindowTitle('2FA code')
 		code_ui.label.setText('Enter a two-factor code for Steam:')
 		while True:
 			code_dialog.exec_()
@@ -446,6 +458,7 @@ def add_authenticator():
 		code_ui = PyUIs.PhoneDialog.Ui_Dialog()
 		code_ui.setupUi(code_dialog)
 		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+		code_dialog.setWindowTitle('Phone number')
 		code_ui.label.setText('This account is missing a phone number. Type yours below to add it.\n'
 								'Format: +cC PhoneNumber Eg. +1 123-456-7890')
 		code_dialog.exec_()
@@ -473,6 +486,7 @@ def add_authenticator():
 			code_ui = PyUIs.PhoneDialog.Ui_Dialog()
 			code_ui.setupUi(code_dialog)
 			code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+			code_dialog.setWindowTitle('Remove old authenticator')
 			code_ui.label.setText('There is already an authenticator associated with\nthis account.'
 									' Enter its revocation code to remove it.')
 			code_dialog.exec_()
@@ -536,6 +550,7 @@ def remove_authenticator():
 	code_ui = PyUIs.PhoneDialog.Ui_Dialog()
 	code_ui.setupUi(code_dialog)
 	code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+	code_dialog.setWindowTitle('Remove authenticator')
 	code_ui.label.setText('Enter your revocatiion code to remove this authenticator.\n'
 							'Note that you will receive a 15-day trade hold upon deactivating your authenticator.')
 	code_dialog.exec_()
@@ -575,8 +590,17 @@ def copy_mafiles():
 # noinspection PyUnresolvedReferences,PyArgumentList
 def main():
 	global mafiles_path, app, manifest, timer_thread, main_window
-	mafiles_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)
-								else os.path.dirname(os.path.abspath(__file__)), 'maFiles')
+	base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
+		else os.path.dirname(os.path.abspath(__file__))
+	if test_mafiles(os.path.join(base_path, 'maFiles')):
+		mafiles_path = os.path.join(base_path, 'maFiles')
+	elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))):
+		mafiles_path = os.path.expanduser(os.path.join('~', '.maFiles'))
+	else:
+		mafiles_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) == 'PySteamAuth' \
+			else os.path.expanduser(os.path.join('~', '.maFiles'))
+	if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
+		os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.abspath('.')
 	app = QtWidgets.QApplication(sys.argv)
 	while True:
 		try:

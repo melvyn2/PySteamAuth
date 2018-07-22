@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/melvyn/PySteamAuth/PySteamAuth/UIs/ConfirmationDialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -32,7 +32,7 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        Dialog.setWindowTitle(_translate("Dialog", "Confirmations"))
         self.pushButton.setText(_translate("Dialog", "Refresh"))
 
 from PyQt5 import QtWebEngineWidgets

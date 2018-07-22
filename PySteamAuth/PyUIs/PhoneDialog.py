@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/melvyn/PySteamAuth/PySteamAuth/UIs/PhoneDialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,6 +35,6 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        Dialog.setWindowTitle(_translate("Dialog", "SMS code"))
         self.label.setText(_translate("Dialog", "Please enter the SMS code you have received:"))
 

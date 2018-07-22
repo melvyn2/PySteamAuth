@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/Users/melvyn/PySteamAuth/PySteamAuth/UIs/SetupDialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,7 +35,7 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        Dialog.setWindowTitle(_translate("Dialog", "Setup"))
         self.label.setText(_translate("Dialog", "Would you like to:"))
         self.pushButton.setText(_translate("Dialog", "Setup a new authenticator"))
         self.label_2.setText(_translate("Dialog", "Or"))
