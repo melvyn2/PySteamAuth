@@ -1,9 +1,10 @@
-#PySteamAuth
+# PySteamAuth
+
 A desktop alternative to the Steam Mobile Authenticator
 
 Requirements
 ------------
-* Python 3.6
+* [Python 3.6](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam](https://github.com/ValvePython/steam) (Python Library)
