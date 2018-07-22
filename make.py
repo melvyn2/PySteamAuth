@@ -82,7 +82,9 @@ if action == 'build':
 			freeze(['--distpath', os.path.join('bin', sys.platform), '--workpath', os.path.join('build', sys.platform),
 					'PySteamAuth-Folder.spec'])
 			if sys.platform == 'darwin':
+				print('Patching .app bundle... ', end='')
 				patch_osx_app()
+				print('Done')
 		print('You can find your built executable(s) in the \'bin' + os.sep + sys.platform + '\' directory.')
 	except ImportError:
 		print('PyInstaller is missing.')

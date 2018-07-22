@@ -31,7 +31,11 @@ import base64
 from Cryptodome.Hash import HMAC, SHA1
 from steam import guard, webauth
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtNetwork
-from . import PyUIs
+try:
+	from . import PyUIs
+except ImportError:
+	# noinspection PyUnresolvedReferences
+	import PyUIs
 
 
 if sys.platform == 'win32':
