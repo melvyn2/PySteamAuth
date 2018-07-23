@@ -17,6 +17,7 @@
 
 import os
 import sys
+import glob
 
 block_cipher = None
 
@@ -35,17 +36,25 @@ exe = EXE(pyz,
           upx=True,
           console=False)
 
+qwe_files = [('QtWebEngineProcess.app', os.path.join(os.sep, 'usr', 'local', 'lib', 'python3.6',
+                                    'site-packages', 'PyQt5', 'Qt', 'lib',
+                                    'QtWebengineCore.framework', 'Helpers', 'QtWebEngineProcess.app'), 'QAPP')] + \
+            [(os.path.basename(os.path.normpath(f)), f, 'DATA') for f in glob.glob(os.path.join(os.sep, 'usr',
+                                    'local', 'lib', 'python3.6', 'site-packages', 'PyQt5', 'Qt', 'lib',
+                                    'QtWebengineCore.framework', 'Resources', '*'))]
+
+
 # noinspection PyUnresolvedReferences
 coll = COLLECT(exe,
                a.binaries + [('msvcp100.dll', 'C:\\Windows\\System32\\msvcp100.dll', 'BINARY'),
                    ('msvcr100.dll', 'C:\\Windows\\System32\\msvcr100.dll', 'BINARY')]
                if sys.platform == 'win32' else a.binaries,
                a.zipfiles,
-               a.datas,
+               a.datas + qwe_files if sys.platform == 'darwin' else a.datas,
                upx=True,
                name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''))
 
 if sys.platform == 'darwin':
     # noinspection PyUnresolvedReferences
-    app = BUNDLE(exe, a.binaries, a.zipfiles, a.datas, name='PySteamAuth.app', icon=None,
-                 bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
+    app = BUNDLE(exe, a.binaries, a.zipfiles, a.datas + qwe_files,
+                 name='PySteamAuth.app', icon=None, bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
