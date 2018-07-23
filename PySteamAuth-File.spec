@@ -18,7 +18,6 @@
 import sys
 import os
 
-block_cipher = None
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],

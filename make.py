@@ -51,33 +51,6 @@ def delete(obj):
 			print(e)
 
 
-def patch_osx_app():
-	app_path = os.path.abspath(os.path.join('bin', 'darwin', 'PySteamAuth.app'))
-	folder_path = os.path.abspath(os.path.join('bin', 'darwin', 'PySteamAuth'))
-	qtwe_core_dir = os.path.join(os.sep, 'usr', 'local', 'lib', 'python3.6',
-									'site-packages', 'PyQt5', 'Qt', 'lib',
-									'QtWebengineCore.framework')
-
-	proc_app = 'QtWebEngineProcess.app'
-	shutil.copytree(os.path.join(qtwe_core_dir, 'Helpers', proc_app),
-					os.path.join(app_path, 'Contents', 'MacOS', proc_app))
-	shutil.copytree(os.path.join(qtwe_core_dir, 'Helpers', proc_app),
-					os.path.join(folder_path, proc_app))
-
-	for f in glob.glob(os.path.join(qtwe_core_dir, 'Resources', '*')):
-		dest = os.path.join(app_path, 'Contents', 'Resources')
-		if os.path.isdir(f):
-			shutil.copytree(f, os.path.join(dest, os.path.basename(os.path.normpath(f))))
-		else:
-			shutil.copy(f, dest)
-
-	for f in glob.glob(os.path.join(qtwe_core_dir, 'Resources', '*')):
-		if os.path.isdir(f):
-			shutil.copytree(f, os.path.join(folder_path, os.path.basename(os.path.normpath(f))))
-		else:
-			shutil.copy(f, folder_path)
-
-
 action = sys.argv[1].lower() if len(sys.argv) >= 2 else None
 
 if action == 'build':
@@ -90,9 +63,6 @@ if action == 'build':
 		else:
 			freeze(['--distpath', os.path.join('bin', sys.platform), '--workpath', os.path.join('build', sys.platform),
 					'PySteamAuth-Folder.spec'])
-			if sys.platform == 'darwin':
-				print('Patching folder and .app bundle... ')
-				patch_osx_app()
 		print('You can find your built executable(s) in the \'bin' + os.sep + sys.platform + '\' directory.')
 	except ImportError:
 		print('PyInstaller is missing.')
@@ -193,7 +163,7 @@ elif action == 'deps':
 	if len(missing) > 0:
 		print('You are missing or need to upgrade/patch the following: ' + ', '.join(missing))
 		if '-y' in sys.argv or input('Install them or it? (y/n) ') == 'y':
-			to_install = ['https://github.com/pyinstaller/pyinstaller/archive/develop.zip' if x == 'PyInstaller'
+			to_install = ['https://github.com/melvyn2/pyinstaller/archive/develop.zip' if x == 'PyInstaller'
 				else ('pycryptodomex' if x == 'Cryptodome' else x) for x in missing]
 			try:
 				import pip

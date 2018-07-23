@@ -604,7 +604,7 @@ def main():
 		mafiles_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) == 'PySteamAuth' \
 			else os.path.expanduser(os.path.join('~', '.maFiles'))
 	if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
-		os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.abspath('.')
+		os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.abspath(os.path.curdir)
 	app = QtWidgets.QApplication(sys.argv)
 	while True:
 		try:

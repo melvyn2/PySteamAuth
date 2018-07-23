@@ -9,7 +9,7 @@ Requirements
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam](https://github.com/ValvePython/steam) (Python Library)
 * [PyCryptoDomeX](https://github.com/Legrandin/pycryptodome) (`pip install pycryptodomex`)
-* [PyInstaller](https://github.com/pyinstaller/pyinstaller) develop branch: `pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip`
+* [PyInstaller modified fork:](https://github.com/melvyn2/pyinstaller) `pip install https://github.com/melvyn2/pyinstaller/archive/develop.zip`
 
 
 Running Directtly
