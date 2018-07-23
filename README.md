@@ -12,7 +12,7 @@ Requirements
 * [PyInstaller modified fork:](https://github.com/melvyn2/pyinstaller) `pip install https://github.com/melvyn2/pyinstaller/archive/develop.zip`
 
 
-Running Directtly
+Running Directly
 -----------------
 First, make sure you have all dependencies installed:
 
