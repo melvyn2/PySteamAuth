@@ -200,7 +200,7 @@ elif action == 'deps':
 	if setuptools.__version__ < '39':
 		missing.append('setuptools')
 
-	print('Not all packages were successfully installed.' if missing else 'You have all dependencies installed!')
+	print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else 'You have all dependencies installed!')
 
 else:
 	print('Invalid option\nPossible options: build, install [--user], run, clean, deps [-y]')
