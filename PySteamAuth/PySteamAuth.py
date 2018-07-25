@@ -632,6 +632,7 @@ def main():
 	main_ui = PyUIs.MainWindow.Ui_MainWindow()
 	main_ui.setupUi(main_window)
 	main_ui.textEdit.setText(sa.get_code())
+	main_ui.progressBar.setTextVisible(False)
 	main_ui.checkBox.stateChanged.connect(lambda: set_auto_accept(sa, main_ui.checkBox, main_ui.checkBox_2))
 	main_ui.checkBox_2.stateChanged.connect(lambda: set_auto_accept(sa, main_ui.checkBox, main_ui.checkBox_2))
 	main_ui.checkBox.setChecked(manifest['auto_confirm_trades'])
