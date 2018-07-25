@@ -54,7 +54,5 @@ coll = COLLECT(exe,
                upx=True,
                name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''))
 
-if sys.platform == 'darwin':
-    # noinspection PyUnresolvedReferences
-    app = BUNDLE(exe, a.binaries, a.zipfiles, a.datas + qwe_files,
-                 name='PySteamAuth.app', icon=None, bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
+# noinspection PyUnresolvedReferences
+app = BUNDLE(coll, name='PySteamAuth.app', icon=None, bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
