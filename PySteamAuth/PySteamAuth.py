@@ -76,7 +76,7 @@ class TimerThread(QtCore.QThread):
 			self.bar_update.emit(self.time)
 			if self.time == 0:
 				self.code_update.emit(self.sa.get_code())
-				self.time = 30
+				self.time = 30 - (self.sa.get_time() % 30)
 			self.time -= 1
 			timemodule.sleep(1)
 
@@ -633,6 +633,7 @@ def main():
 	main_ui.setupUi(main_window)
 	main_ui.textEdit.setText(sa.get_code())
 	main_ui.progressBar.setTextVisible(False)
+	main_ui.progressBar.valueChanged.connect(main_ui.progressBar.repaint)
 	main_ui.checkBox.stateChanged.connect(lambda: set_auto_accept(sa, main_ui.checkBox, main_ui.checkBox_2))
 	main_ui.checkBox_2.stateChanged.connect(lambda: set_auto_accept(sa, main_ui.checkBox, main_ui.checkBox_2))
 	main_ui.checkBox.setChecked(manifest['auto_confirm_trades'])
