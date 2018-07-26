@@ -7,9 +7,9 @@ Requirements
 * [Python 3.6](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
-* [Steam](https://github.com/ValvePython/steam) (Python Library)
+* [Steam (Python Library)](https://github.com/ValvePython/steam)
 * [PyCryptoDomeX](https://github.com/Legrandin/pycryptodome) (`pip install pycryptodomex`)
-* [PyInstaller](https://github.com/pyinstaller/pyinstaller)
+* [PyInstaller custom branch:](https://github.com/melvyn2/pyinstaller/tree/qtwe_fix) `pip install https://github.com/melvyn2/pyinstaller/archive/qtwe_fix.zip`
 
 
 Running Directly
