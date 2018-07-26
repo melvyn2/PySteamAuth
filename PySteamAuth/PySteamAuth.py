@@ -327,11 +327,7 @@ def open_conf_dialog(sa):
 	web_profile.cookieStore().setCookie(sid)
 	url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
 	web_profile.cookieStore().loadAllCookies()
-	web_profile.setHttpUserAgent('Mozilla/5.0 (Linux; Android 6.0; Nexus 6P Build/XXXXX; wv) ' +
-								'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/47.0.2526.68 Mobile Safari/537.36')
-	conf_ui.webEngineView.setLocale(QtCore.QLocale('en-US'))
 	page = QtWebEngineWidgets.QWebEnginePage(web_profile, conf_ui.webEngineView)
-	page.settings().setAttribute(web_profile.settings().AllowRunningInsecureContent, True)
 	conf_ui.webEngineView.setPage(page)
 	tradeid = Empty()
 	tradeid.id = ''
@@ -348,8 +344,8 @@ async function reload() {
 	await sleep(2000)
 	location.reload(true);
 }
-window.GetValueFromLocalURL = 
-	function(url, timeout, success, error, fatal) {{            
+window.GetValueFromLocalURL =
+	function(url, timeout, success, error, fatal) {{
 		if(url.indexOf('steammobile://steamguard?op=conftag&arg1=allow') !== -1) {{
 			success('{0}');
 			reload();
@@ -364,6 +360,7 @@ window.GetValueFromLocalURL =
 	conf_ui.webEngineView.load(QtCore.QUrl(url))
 	loop.exec_()
 	conf_ui.webEngineView.show()
+	conf_dialog.show()
 	conf_dialog.exec_()
 
 
@@ -603,8 +600,6 @@ def main():
 	else:
 		mafiles_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) == 'PySteamAuth' \
 			else os.path.expanduser(os.path.join('~', '.maFiles'))
-	if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
-		os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.abspath(os.path.curdir)
 	app = QtWidgets.QApplication(sys.argv)
 	while True:
 		try:

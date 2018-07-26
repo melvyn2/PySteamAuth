@@ -23,7 +23,7 @@ block_cipher = None
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],
-            pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')])
+            pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')], hiddenimports=['PyQt5.sip'])
 
 # noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data)
@@ -36,10 +36,10 @@ exe = EXE(pyz,
           upx=True,
           console=False)
 
-qwe_files = [('QtWebEngineProcess.app', os.path.join(os.sep, 'usr', 'local', 'lib', 'python3.6',
-                                    'site-packages', 'PyQt5', 'Qt', 'lib',
-                                    'QtWebengineCore.framework', 'Helpers', 'QtWebEngineProcess.app'), 'QAPP')] + \
-            [(os.path.basename(os.path.normpath(f)), f, 'DATA') for f in glob.glob(os.path.join(os.sep, 'usr',
+# qwe_files = [('QtWebEngineProcess.app', os.path.join(os.sep, 'usr', 'local', 'lib', 'python3.6',
+#                                     'site-packages', 'PyQt5', 'Qt', 'lib',
+#                                     'QtWebengineCore.framework', 'Helpers', 'QtWebEngineProcess.app'), 'QAPP')] + \
+qwe_files = [(os.path.basename(os.path.normpath(f)), f, 'DATA') for f in glob.glob(os.path.join(os.sep, 'usr',
                                     'local', 'lib', 'python3.6', 'site-packages', 'PyQt5', 'Qt', 'lib',
                                     'QtWebengineCore.framework', 'Resources', '*'))]
 
@@ -55,4 +55,4 @@ coll = COLLECT(exe,
                name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''))
 
 # noinspection PyUnresolvedReferences
-app = BUNDLE(coll, name='PySteamAuth.app', icon=None, bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
+app = BUNDLE(coll, name='PySteamAuth.app', icon=None)
