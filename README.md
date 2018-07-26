@@ -9,7 +9,7 @@ Requirements
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam](https://github.com/ValvePython/steam) (Python Library)
 * [PyCryptoDomeX](https://github.com/Legrandin/pycryptodome) (`pip install pycryptodomex`)
-* [PyInstaller modified fork:](https://github.com/melvyn2/pyinstaller) `pip install https://github.com/melvyn2/pyinstaller/archive/develop.zip`
+* [PyInstaller](https://github.com/pyinstaller/pyinstaller)
 
 
 Running Directly
@@ -18,13 +18,13 @@ First, make sure you have all dependencies installed:
 
 `$ ./make.py deps`
 
-Because PySteamAuth is a python script, you can run it directly (as a module):
+Because PySteamAuth is a python script, you can run it directly:
 
-`$ python3.6 -m PySteamAuth.PySteamAuth`
+`$ python3.6 PySteamAuth/PySteamAuth.py`
 
 Or you can use make.py
 
-`$ make.py run`
+`$ ./make.py run`
 
 Building
 --------
