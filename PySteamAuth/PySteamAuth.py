@@ -361,6 +361,7 @@ window.GetValueFromLocalURL =
 	loop.exec_()
 	conf_ui.webEngineView.show()
 	conf_dialog.show()
+	main_ui.pushButton_2.setText('Confirmations')
 	conf_dialog.exec_()
 
 
@@ -590,7 +591,7 @@ def copy_mafiles():
 
 # noinspection PyUnresolvedReferences,PyArgumentList
 def main():
-	global mafiles_path, app, manifest, timer_thread, main_window
+	global mafiles_path, app, manifest, timer_thread, main_window, main_ui
 	base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
 		else os.path.dirname(os.path.abspath(__file__))
 	if test_mafiles(os.path.join(base_path, 'maFiles')):
@@ -634,7 +635,7 @@ def main():
 	main_ui.checkBox.setChecked(manifest['auto_confirm_trades'])
 	main_ui.checkBox_2.setChecked(manifest['auto_confirm_market_transactions'])
 	main_ui.pushButton_1.clicked.connect(lambda: accept_all(sa))
-	main_ui.pushButton_2.clicked.connect(lambda: open_conf_dialog(sa))
+	main_ui.pushButton_2.clicked.connect(lambda: (main_ui.pushButton_2.setText('Opening...'), open_conf_dialog(sa)))
 	main_ui.pushButton_3.clicked.connect(remove_authenticator)
 	main_ui.pushButton_4.clicked.connect(lambda: backup_codes_popup(sa))
 	main_ui.pushButton_5.clicked.connect(lambda: backup_codes_delete(sa))
