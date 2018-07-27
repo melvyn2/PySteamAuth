@@ -2,6 +2,9 @@
 
 A desktop alternative to the Steam Mobile Authenticator
 
+[Downloads](https://github.com/melvyn2/PySteamAuth/releases)
+ ---------
+
 Requirements
 ------------
 * [Python 3.6](https://www.python.org/)
