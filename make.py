@@ -148,7 +148,7 @@ elif action == 'clean':
 
 elif action == 'deps':
 	missing = []
-	deps = ['Cryptodome', 'PyInstaller', 'PyQt5', 'requests', 'steam']
+	deps = ['PyInstaller', 'PyQt5', 'requests', 'steam']
 	installed_packages = [x[1] for x in list(pkgutil.iter_modules())]
 	for i in deps:
 		if i not in installed_packages:
@@ -163,8 +163,8 @@ elif action == 'deps':
 	if len(missing) > 0:
 		print('You are missing or need to upgrade/patch the following: ' + ', '.join(missing))
 		if '-y' in sys.argv or input('Install them or it? (y/n) ') == 'y':
-			to_install = ['https://github.com/melvyn2/pyinstaller/archive/develop.zip' if x == 'PyInstaller'
-				else ('pycryptodomex' if x == 'Cryptodome' else x) for x in missing]
+			to_install = ['https://github.com/melvyn2/pyinstaller/archive/QTWE_fix.zip' if x == 'PyInstaller' else x for x
+							in missing]
 			try:
 				import pip
 				# noinspection PyUnresolvedReferences
@@ -200,7 +200,8 @@ elif action == 'deps':
 	if setuptools.__version__ < '39':
 		missing.append('setuptools')
 
-	print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else 'You have all dependencies installed!')
+	print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else
+			'You have all dependencies installed!')
 
 else:
 	print('Invalid option\nPossible options: build, install [--user], run, clean, deps [-y]')

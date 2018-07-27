@@ -25,10 +25,8 @@ import time as timemodule
 import webbrowser
 import requests
 import requests.cookies
-import urllib.request
 import urllib.parse
-import base64
-from Cryptodome.Hash import HMAC, SHA1
+import binascii
 from steam import guard, webauth
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtNetwork
 try:
@@ -116,7 +114,7 @@ def get_tradeid_from_url(url):
 def generate_query(tag, sa):
 	return 'p={0}&a={1}&k={2}&t={3}&m=android&tag={4}'\
 		.format(sa.secrets['device_id'], sa.secrets['Session']['SteamID'],
-				get_conf_hash_for_time(sa.get_time(), tag, sa.secrets['identity_secret']), sa.get_time(), tag)
+				urllib.parse.quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), sa.get_time(), tag)
 
 
 # noinspection PyArgumentList
@@ -177,35 +175,6 @@ def refresh_session(sa):
 		return True
 	except requests.exceptions.ConnectionError:
 		return False
-
-
-# noinspection PyTypeChecker,PyTypeChecker
-def get_conf_hash_for_time(time, tag, id_secret):
-	decoded = bytearray(base64.b64decode(id_secret))
-	n2 = 8
-	if tag:
-		if len(tag) > 32:
-			n2 = 8 + 32
-		else:
-			n2 = 8 + len(tag)
-	array = [None] * n2
-	n3 = 8
-	while True:
-		n4 = n3 - 1
-		if n3 <= 0:
-			break
-		array[n4] = (time >> 0) & 0xFF
-		time >>= 8
-		n3 = n4
-	if tag:
-		for i in range(n2 - 8):
-			array[i + 8] = tag.encode()[i]
-	hmac_generator = HMAC.HMAC(decoded, digestmod=SHA1)
-	hmac_generator.update(bytearray(array))
-	hashed_data = hmac_generator.digest()
-	encoded_data = base64.b64encode(hashed_data)
-	url_hash = urllib.parse.quote_plus(encoded_data)
-	return url_hash
 
 
 def auto_accept(sa, trades, markets):
@@ -401,7 +370,7 @@ def get_mobilewebauth():
 		captcha_ui.setupUi(captcha_dialog)
 		captcha_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
 		pixmap = QtGui.QPixmap()
-		pixmap.loadFromData(urllib.request.urlopen(user.captcha_url).read())
+		pixmap.loadFromData(requests.get(user.captcha_url).text)
 		captcha_ui.label_2.setPixmap(pixmap)
 		while True:
 			captcha_dialog.exec_()
