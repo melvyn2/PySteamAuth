@@ -9,7 +9,7 @@ Requirements
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam (Python Library)](https://github.com/ValvePython/steam)
 * [PyCryptoDomeX](https://github.com/Legrandin/pycryptodome) (`pip install pycryptodomex`)
-* [PyInstaller custom branch:](https://github.com/melvyn2/pyinstaller/tree/qtwe_fix) `pip install https://github.com/melvyn2/pyinstaller/archive/qtwe_fix.zip`
+* [PyInstaller custom branch:](https://github.com/melvyn2/pyinstaller/tree/QTWE_fix) `pip install https://github.com/melvyn2/pyinstaller/archive/QTWE_fix.zip`
 
 
 Running Directly
