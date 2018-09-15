@@ -36,12 +36,6 @@ except ImportError:
 	import PyUIs
 
 
-if sys.platform == 'win32':
-	import struct
-	if struct.calcsize('P') == 4:
-		print('WARNING: 32-bit versions of Windows may cause issues.'
-				' If problems occur, try using a 64-bit OS to see if that resolves your issue.')
-
 if not(sys.version_info.major == 3 and sys.version_info.minor == 6):
 	raise SystemExit('ERROR: Requires python 3.6')
 
@@ -98,9 +92,9 @@ def error_popup(message, header=None):
 	error_ui = PyUIs.ErrorDialog.Ui_Dialog()
 	error_ui.setupUi(error_dialog)
 	if header:
-		error_ui.label.setText(header)
-		error_dialog.setWindowTitle(header)
-	error_ui.label_2.setText(message)
+		error_ui.label.setText(str(header))
+		error_dialog.setWindowTitle(str(header))
+	error_ui.label_2.setText(str(message))
 	error_dialog.exec_()
 
 
@@ -119,8 +113,15 @@ def generate_query(tag, sa):
 
 # noinspection PyArgumentList
 def backup_codes_popup(sa):
+	if not sa.medium:
+		mwa = get_mobilewebauth(sa)
+		if not mwa:
+			return
+		sa.medium = mwa
 	try:
-		codes = ' '.join(sa.create_emergency_codes())
+		codes = sa.create_emergency_codes()
+		print(codes)
+		codes = ' '.join(codes)
 	except guard.SteamAuthenticatorError as e:
 		error_popup(e)
 		return
@@ -133,6 +134,11 @@ def backup_codes_popup(sa):
 
 # noinspection PyArgumentList
 def backup_codes_delete(sa):
+	if not sa.medium:
+		mwa = get_mobilewebauth(sa)
+		if not mwa:
+			return
+		sa.medium = mwa
 	endfunc = Empty()
 	endfunc.endfunc = False
 	bcodes_dialog = QtWidgets.QDialog()
@@ -271,10 +277,6 @@ def open_conf_dialog(sa):
 	mcv.setDomain('.steamcommunity.com')
 	mcv.setPath('/')
 	web_profile.cookieStore().setCookie(mcv)
-	mc = QtNetwork.QNetworkCookie(b'mobileClientVersion', b'0 (2.1.3)')
-	mc.setDomain('.steamcommunity.com')
-	mc.setPath('/')
-	web_profile.cookieStore().setCookie(mc)
 	stmid = QtNetwork.QNetworkCookie(b'steamid', bytes(str(sa.secrets['Session']['SteamID']), 'ascii'))
 	stmid.setDomain('.steamcommunity.com')
 	stmid.setPath('/')
@@ -335,18 +337,21 @@ window.GetValueFromLocalURL =
 
 
 # noinspection PyArgumentList
-def get_mobilewebauth():
+def get_mobilewebauth(sa=None):
 	endfunc = Empty()
 	endfunc.endfunc = False
 	login_dialog = QtWidgets.QDialog()
 	login_ui = PyUIs.LoginDialog.Ui_Dialog()
 	login_ui.setupUi(login_dialog)
 	login_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+	if sa:
+		login_ui.lineEdit.setText(sa.secrets['account_name'])
 	while True:
 		# noinspection PyUnusedLocal
 		required = None
 		login_dialog.exec_()
 		user = webauth.MobileWebAuth(username=login_ui.lineEdit.text(), password=login_ui.lineEdit_2.text())
+		username = login_ui.lineEdit.text()
 		try:
 			user.login()
 		except KeyError:
@@ -364,57 +369,85 @@ def get_mobilewebauth():
 			break
 		if endfunc.endfunc:
 			return
-	if required == 'captcha':
-		captcha_dialog = QtWidgets.QDialog()
-		captcha_ui = PyUIs.CaptchaDialog.Ui_Dialog()
-		captcha_ui.setupUi(captcha_dialog)
-		captcha_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-		pixmap = QtGui.QPixmap()
-		pixmap.loadFromData(requests.get(user.captcha_url).text)
-		captcha_ui.label_2.setPixmap(pixmap)
-		while True:
-			captcha_dialog.exec_()
-			if endfunc.endfunc:
-				return
-			try:
-				user.login(captcha=captcha_ui.lineEdit.text())
-				break
-			except webauth.CaptchaRequired:
-				captcha_ui.label_3.setText('Incorrect')
-	elif required == 'email':
-		code_dialog = QtWidgets.QDialog()
-		code_ui = PyUIs.PhoneDialog.Ui_Dialog()
-		code_ui.setupUi(code_dialog)
-		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-		code_dialog.setWindowTitle('Email code')
-		code_ui.label.setText('Enter the email code you have received:')
-		while True:
-			code_dialog.exec_()
-			if endfunc.endfunc:
-				return
-			try:
-				user.login(email_code=code_ui.lineEdit.text())
-				break
-			except webauth.EmailCodeRequired:
-				code_ui.label_2.setText('Invalid code')
-	elif required == '2FA':
-		code_dialog = QtWidgets.QDialog()
-		code_ui = PyUIs.PhoneDialog.Ui_Dialog()
-		code_ui.setupUi(code_dialog)
-		code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-		code_dialog.setWindowTitle('2FA code')
-		code_ui.label.setText('Enter a two-factor code for Steam:')
-		while True:
-			code_dialog.exec_()
-			if endfunc.endfunc:
-				return
-			try:
-				user.login(twofactor_code=code_ui.lineEdit.text())
-				break
-			except webauth.TwoFactorCodeRequired:
-				code_ui.label_2.setText('Invalid Code')
-			except webauth.LoginIncorrect as e:
-				code_ui.label_2.setText(e)
+	captcha = ''
+	twofactor_code = ''
+	email_code = ''
+	while True:
+		if required == 'captcha':
+			captcha_dialog = QtWidgets.QDialog()
+			captcha_ui = PyUIs.CaptchaDialog.Ui_Dialog()
+			captcha_ui.setupUi(captcha_dialog)
+			captcha_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+			pixmap = QtGui.QPixmap()
+			pixmap.loadFromData(requests.get(user.captcha_url).text)
+			captcha_ui.label_2.setPixmap(pixmap)
+			while True:
+				captcha_dialog.exec_()
+				if endfunc.endfunc:
+					return
+				captcha = captcha_ui.lineEdit.text()
+				try:
+					user.login(captcha=captcha, email_code=email_code, twofactor_code=twofactor_code)
+					break
+				except webauth.CaptchaRequired:
+					captcha_ui.label_3.setText('Incorrect')
+				except webauth.LoginIncorrect as e:
+					captcha_ui.label_3.setText(str(e))
+				except webauth.EmailCodeRequired:
+					required = 'email'
+					break
+				except webauth.TwoFactorCodeRequired:
+					required = '2FA'
+					break
+		elif required == 'email':
+			code_dialog = QtWidgets.QDialog()
+			code_ui = PyUIs.PhoneDialog.Ui_Dialog()
+			code_ui.setupUi(code_dialog)
+			code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+			code_dialog.setWindowTitle('Email code')
+			code_ui.label.setText('Enter the email code you have received:')
+			while True:
+				code_dialog.exec_()
+				if endfunc.endfunc:
+					return
+				email_code = code_ui.lineEdit.text()
+				try:
+					user.login(email_code=email_code, captcha=captcha)
+					break
+				except webauth.EmailCodeRequired:
+					code_ui.label_2.setText('Invalid code')
+				except webauth.LoginIncorrect as e:
+					code_ui.label_2.setText(str(e))
+				except webauth.CaptchaRequired:
+					required = 'captcha'
+					break
+		elif required == '2FA':
+			code_dialog = QtWidgets.QDialog()
+			code_ui = PyUIs.PhoneDialog.Ui_Dialog()
+			code_ui.setupUi(code_dialog)
+			code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
+			code_dialog.setWindowTitle('2FA code')
+			code_ui.label.setText('Enter a two-factor code for Steam:')
+			while True:
+				if sa and username == sa.secrets['account_name']:
+					twofactor_code = sa.get_code()
+				else:
+					code_dialog.exec_()
+					if endfunc.endfunc:
+						return
+					twofactor_code = code_ui.lineEdit.text()
+				try:
+					user.login(twofactor_code=twofactor_code, captcha=captcha)
+					break
+				except webauth.TwoFactorCodeRequired:
+					code_ui.label_2.setText('Invalid Code')
+				except webauth.LoginIncorrect as e:
+					code_ui.label_2.setText(str(e))
+				except webauth.CaptchaRequired:
+					required = 'captcha'
+					break
+		if user.complete:
+			break
 	return user
 
 
@@ -423,6 +456,8 @@ def add_authenticator():
 	endfunc = Empty()
 	endfunc.endfunc = False
 	mwa = get_mobilewebauth()
+	if not mwa:
+		return
 	sa = guard.SteamAuthenticator(medium=mwa)
 	if not sa.has_phone_number():
 		code_dialog = QtWidgets.QDialog()
@@ -512,9 +547,12 @@ def add_authenticator():
 
 
 # noinspection PyArgumentList
-def remove_authenticator():
-	mwa = get_mobilewebauth()
-	sa = guard.SteamAuthenticator(medium=mwa)
+def remove_authenticator(sa):
+	if not sa.medium:
+		mwa = get_mobilewebauth(sa)
+		if not mwa:
+			return
+		sa.medium = mwa
 	endfunc = Empty()
 	endfunc.endfunc = False
 	code_dialog = QtWidgets.QDialog()
@@ -522,13 +560,18 @@ def remove_authenticator():
 	code_ui.setupUi(code_dialog)
 	code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
 	code_dialog.setWindowTitle('Remove authenticator')
-	code_ui.label.setText('Enter your revocatiion code to remove this authenticator.\n'
-							'Note that you will receive a 15-day trade hold upon deactivating your authenticator.')
+	code_ui.label.setText('Type \'yes\' into the box below to remove your\nauthenticator. '
+							'Note that you will receive a 15-day\ntrade hold upon deactivating your authenticator.')
+	for i in code_ui.buttonBox.buttons():
+		if code_ui.buttonBox.buttonRole(i) == QtWidgets.QDialogButtonBox.AcceptRole:
+			i.setEnabled(False)
+	code_ui.lineEdit.textChanged.connect(lambda x: [(b.setEnabled(x.lower() == 'yes')
+													if code_ui.buttonBox.buttonRole(b) == QtWidgets.QDialogButtonBox.AcceptRole else None)
+													for b in code_ui.buttonBox.buttons()])
 	code_dialog.exec_()
 	if endfunc.endfunc:
 		return
-	sa.secrets = {'revocation_code': code_ui.lineEdit.text()}
-	sa.revocation_code = code_ui.lineEdit.text()
+
 	try:
 		sa.remove()
 	except guard.SteamAuthenticatorError as e:
@@ -605,7 +648,7 @@ def main():
 	main_ui.checkBox_2.setChecked(manifest['auto_confirm_market_transactions'])
 	main_ui.pushButton_1.clicked.connect(lambda: accept_all(sa))
 	main_ui.pushButton_2.clicked.connect(lambda: (main_ui.pushButton_2.setText('Opening...'), open_conf_dialog(sa)))
-	main_ui.pushButton_3.clicked.connect(remove_authenticator)
+	main_ui.pushButton_3.clicked.connect(lambda: remove_authenticator(sa))
 	main_ui.pushButton_4.clicked.connect(lambda: backup_codes_popup(sa))
 	main_ui.pushButton_5.clicked.connect(lambda: backup_codes_delete(sa))
 	main_ui.pushButton_6.clicked.connect(lambda: webbrowser.open('file://' + mafiles_path.replace('\\', '/')))

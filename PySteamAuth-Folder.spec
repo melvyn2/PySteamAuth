@@ -17,9 +17,7 @@
 
 import os
 import sys
-import glob
 
-block_cipher = None
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],
@@ -42,7 +40,7 @@ coll = COLLECT(exe,
                    ('msvcr100.dll', 'C:\\Windows\\System32\\msvcr100.dll', 'BINARY')]
                if sys.platform == 'win32' else a.binaries,
                a.zipfiles,
-               a.datas,  # + qwe_files if sys.platform == 'darwin' else a.datas,
+               a.datas,
                upx=True,
                name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''))
 
