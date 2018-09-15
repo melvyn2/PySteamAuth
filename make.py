@@ -23,10 +23,6 @@ import fnmatch
 import struct
 
 
-if sys.platform == 'win32':
-	print('WARNING: 32-bit versions of Windows may cause issues.'
-			' If problems occur, try using a 64-bit OS to see if that resolves your issue.')
-
 if not(sys.version_info.major == 3 and sys.version_info.minor == 6):
 	raise SystemExit('ERROR: Requires python 3.6')
 
@@ -155,7 +151,7 @@ elif action == 'deps':
 			missing.append(i)
 	if 'PyInstaller' not in missing:
 		import PyInstaller
-		if PyInstaller.__version__[:8] != '3.4.dev0':
+		if PyInstaller.__version__[:8] != '3.5.dev0':
 			missing.append('PyInstaller')
 	import setuptools
 	if setuptools.__version__ < '39':
@@ -193,12 +189,8 @@ elif action == 'deps':
 	if 'PyInstaller' not in missing:
 		import PyInstaller
 
-		if PyInstaller.__version__[:8] != '3.4.dev0':
+		if PyInstaller.__version__[:8] != '3.5.dev0':
 			missing.append('PyInstaller')
-	import setuptools
-
-	if setuptools.__version__ < '39':
-		missing.append('setuptools')
 
 	print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else
 			'You have all dependencies installed!')
