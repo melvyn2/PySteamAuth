@@ -36,8 +36,8 @@ except ImportError:
 	import PyUIs
 
 
-if not(sys.version_info.major == 3 and sys.version_info.minor == 6):
-	raise SystemExit('ERROR: Requires python 3.6')
+if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
+	raise SystemExit('ERROR: Requires python >= 3.6')
 
 
 class Empty(object):
@@ -88,6 +88,9 @@ def restart():
 
 # noinspection PyArgumentList
 def error_popup(message, header=None):
+	if multiprocessing.current_process().name != 'MainProcess':
+		print(header if header else 'Error: ', message)
+		return
 	error_dialog = QtWidgets.QDialog()
 	error_ui = PyUIs.ErrorDialog.Ui_Dialog()
 	error_ui.setupUi(error_dialog)
@@ -120,16 +123,18 @@ def backup_codes_popup(sa):
 		sa.medium = mwa
 	try:
 		codes = sa.create_emergency_codes()
-		print(codes)
 		codes = ' '.join(codes)
 	except guard.SteamAuthenticatorError as e:
 		error_popup(e)
 		return
-	bcodes_dialog = QtWidgets.QDialog()
-	bcodes_ui = PyUIs.BackupCodesDialog.Ui_Dialog()
-	bcodes_ui.setupUi(bcodes_dialog)
-	bcodes_ui.label_2.setText(codes)
-	bcodes_dialog.exec_()
+	if len(codes) > 0:
+		bcodes_dialog = QtWidgets.QDialog()
+		bcodes_ui = PyUIs.BackupCodesDialog.Ui_Dialog()
+		bcodes_ui.setupUi(bcodes_dialog)
+		bcodes_ui.label_2.setText(codes)
+		bcodes_dialog.exec_()
+	else:
+		error_popup('No codes were generated', 'Warning:')
 
 
 # noinspection PyArgumentList
@@ -218,7 +223,11 @@ def fetch_confirmations(sa):
 	jar.set('steamLoginSecure', str(sa.secrets['Session']['SteamLoginSecure']), path='/', domain='.steamcommunity.com')
 	jar.set('Steam_Language', 'english', path='/', domain='.steamcommunity.com')
 	jar.set('sessionid', str(sa.secrets['Session']['SessionID']), path='/', domain='.steamcommunity.com')
-	r = requests.get(conf_url, cookies=jar)
+	try:
+		r = requests.get(conf_url, cookies=jar)
+	except requests.exceptions.ConnectionError:
+		error_popup('Connection Error.')
+		return []
 	conf_regex = '<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\\d+)\" ' + \
 		'data-key=\"(\\d+)\" data-type=\"(\\d+)\" data-creator=\"(\\d+)\"'
 	conf_desc_regex = '<div>((Confirm|Trade|Sell -) .+)</div>'
@@ -235,6 +244,8 @@ def fetch_confirmations(sa):
 def accept_all(sa, trades=True, market=True):
 	data = 'op=allow&' + generate_query('allow', sa)
 	confs = fetch_confirmations(sa)
+	if len(confs) == 0:
+		return
 	if not refresh_session(sa):
 		error_popup('Failed to refresh session.', 'Warning:')
 	jar = requests.cookies.RequestsCookieJar()
@@ -332,8 +343,8 @@ window.GetValueFromLocalURL =
 	loop.exec_()
 	conf_ui.webEngineView.show()
 	conf_dialog.show()
-	main_ui.pushButton_2.setText('Confirmations')
 	conf_dialog.exec_()
+	main_ui.pushButton_2.setText('Confirmations')
 
 
 # noinspection PyArgumentList
@@ -354,10 +365,17 @@ def get_mobilewebauth(sa=None):
 		username = login_ui.lineEdit.text()
 		try:
 			user.login()
+		except webauth.HTTPError:
+			error_popup('Connection Error')
+			return
 		except KeyError:
 			login_ui.label_3.setText('Username and password required.')
-		except webauth.LoginIncorrect:
-			login_ui.label_3.setText('Incorrect username and/or password,\n or too many attempts.')
+		except webauth.LoginIncorrect as e:
+			if 'is incorrect' in e:
+				login_ui.label_3.setText('Incorrect username and/or password.')
+			else:
+				login_ui.label_3.setText('Incorrect username and/or password,\n or too many attempts.')
+			print(e)
 		except webauth.CaptchaRequired:
 			required = 'captcha'
 			break
@@ -608,7 +626,7 @@ def main():
 		else os.path.dirname(os.path.abspath(__file__))
 	if test_mafiles(os.path.join(base_path, 'maFiles')):
 		mafiles_path = os.path.join(base_path, 'maFiles')
-	elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))):
+	elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in sys.argv:
 		mafiles_path = os.path.expanduser(os.path.join('~', '.maFiles'))
 	else:
 		mafiles_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) == 'PySteamAuth' \

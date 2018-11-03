@@ -23,8 +23,8 @@ import fnmatch
 import struct
 
 
-if not(sys.version_info.major == 3 and sys.version_info.minor == 6):
-	raise SystemExit('ERROR: Requires python 3.6')
+if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
+	raise SystemExit('ERROR: Requires python >= 3.6')
 
 
 def clean():
