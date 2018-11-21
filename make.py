@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 
 #   Copyright (C) 2018 melvyn2
 #
@@ -159,7 +159,7 @@ elif action == 'deps':
 	if len(missing) > 0:
 		print('You are missing or need to upgrade/patch the following: ' + ', '.join(missing))
 		if '-y' in sys.argv or input('Install them or it? (y/n) ') == 'y':
-			to_install = ['https://github.com/melvyn2/pyinstaller/archive/QTWE_fix.zip' if x == 'PyInstaller' else x for x
+			to_install = ['https://github.com/pyinstaller/pyinstaller/archive/develop.zip' if x == 'PyInstaller' else x for x
 							in missing]
 			try:
 				import pip
