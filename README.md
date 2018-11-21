@@ -7,11 +7,11 @@ A desktop alternative to the Steam Mobile Authenticator
 
 Requirements
 ------------
-* [Python 3.6](https://www.python.org/)
+* [Python 3](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam (Python Library)](https://github.com/ValvePython/steam)
-* [PyInstaller custom branch:](https://github.com/melvyn2/pyinstaller/tree/QTWE_fix) `pip install https://github.com/melvyn2/pyinstaller/archive/QTWE_fix.zip`
+* [PyInstaller (develop)](https://github.com/melvyn2/pyinstaller/tree/QTWE_fix) `pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip`
 
 
 Running Directly
