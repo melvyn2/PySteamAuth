@@ -20,4 +20,10 @@ FORMS += \
     ErrorDialog.ui \
     ConfirmationDialog.ui \
     BackupCodesDialog.ui \
-    BackupCodesDeleteDialog.ui
+    BackupCodesDeleteDialog.ui \
+    confdialog.ui
+
+DISTFILES +=
+
+RESOURCES += \
+    images.qrc
