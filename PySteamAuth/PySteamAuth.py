@@ -21,7 +21,7 @@ import shutil
 import os
 import re
 import multiprocessing
-import time as timemodule
+import time as pytime
 import webbrowser
 import requests
 import requests.cookies
@@ -37,7 +37,7 @@ except ImportError:
 
 
 if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
-	raise SystemExit('ERROR: Requires python >= 3.6')
+	raise SystemExit('ERROR: Requires python ≥ 3.6')
 
 
 class Empty(object):
@@ -45,12 +45,13 @@ class Empty(object):
 
 
 class Confirmation(object):
-	def __init__(self, conf_id, conf_key, conf_type, conf_creator, conf_description):
+	def __init__(self, conf_id, conf_key, conf_type, conf_creator, conf_description, conf_icon_url):
 		self.id = conf_id
 		self.key = conf_key
 		self.type = conf_type
 		self.creator = conf_creator
 		self.description = conf_description
+		self.icon_url = conf_icon_url
 
 
 class TimerThread(QtCore.QThread):
@@ -70,7 +71,7 @@ class TimerThread(QtCore.QThread):
 				self.code_update.emit(self.sa.get_code())
 				self.time = 30 - (self.sa.get_time() % 30)
 			self.time -= 1
-			timemodule.sleep(1)
+			pytime.sleep(1)
 
 
 def restart():
@@ -192,7 +193,7 @@ def auto_accept(sa, trades, markets):
 	if trades or markets:
 		while True:
 			accept_all(sa, trades, markets)
-			timemodule.sleep(5)
+			pytime.sleep(5)
 
 
 def set_auto_accept(sa, trades_checkbox, markets_checkbox):
@@ -231,13 +232,19 @@ def fetch_confirmations(sa):
 	conf_regex = '<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\\d+)\" ' + \
 		'data-key=\"(\\d+)\" data-type=\"(\\d+)\" data-creator=\"(\\d+)\"'
 	conf_desc_regex = '<div>((Confirm|Trade|Sell -) .+)</div>'
+	conf_icon_url_regex1 = 'mobileconf_list_entry_icon((.|\n)*?)</div>'
+	conf_icon_url_regex2 = '<img[^>]+src="([^">]+)"'
 	if '<div>Nothing to confirm</div>' in r.text:
 		return []
 	confs = re.findall(conf_regex, r.text)
 	descs = re.findall(conf_desc_regex, r.text)
+	icon_urls = []
+	for i in re.findall(conf_icon_url_regex1, r.text):
+		icon_urls.append(re.findall(conf_icon_url_regex2, i[0]))
 	ret = []
 	for i in range(len(confs)):
-		ret.append(Confirmation(confs[i][0], confs[i][1], confs[i][2], confs[i][3], re.sub('[<].*[>]', '', descs[i][0])))
+		ret.append(Confirmation(confs[i][0], confs[i][1], confs[i][2], confs[i][3], re.sub('<[^>]+>', '', descs[i][0]),
+								icon_urls[i][0]))
 	return ret
 
 
@@ -268,7 +275,7 @@ def accept_all(sa, trades=True, market=True):
 		data += '&cid=' + confs[0].id + '&ck=' + confs[0].key
 		requests.get(url + data, cookies=jar)
 	else:
-		url = 'https://steamcommunity.com/mobileconf/multiajaxop'
+		url = 'https://steamcommunity.com/mobileconf/multiajaxop?'
 		for i in confs:
 			data += '&cid[]=' + i.id + '&ck[]=' + i.key
 		requests.post(url, data=data, cookies=jar)
