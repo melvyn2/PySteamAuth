@@ -16,7 +16,7 @@ Requirements
 
 Running Directly
 -----------------
-First, make sure you have all dependencies installed, qnd build the PyQt dialogs:
+First, make sure you have all dependencies installed, and build the PyQt dialogs:
 
 `$ ./make.py deps && ./make.py pyqt-build`
 
@@ -53,4 +53,4 @@ When packaged into a folder, the executable cannot be separated from the folder'
 
 Known Issues
 ------------
-* Confirm-all on multiple confirmation fails (use individual confirmqtion dialog until fixed) (#2)
+* Confirm-all on multiple confirmation fails (use individual confirmation dialog until fixed) (#2)
