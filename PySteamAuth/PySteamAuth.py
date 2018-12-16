@@ -22,8 +22,6 @@ import shutil
 import os
 import time as pytime
 import webbrowser
-import urllib.parse
-import binascii
 import requests
 from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -97,19 +95,6 @@ def error_popup(message, header=''):
         error_dialog.setWindowTitle(str(header))
     error_ui.label_2.setText(str(message))
     error_dialog.exec_()
-
-
-def get_tradeid_from_url(url):
-    try:
-        return str(url).split('#')[1].replace('conf_', '')
-    except IndexError:
-        return ''
-
-
-def generate_query(tag, sa):
-    return 'p={0}&a={1}&k={2}&t={3}&m=android&tag={4}'\
-        .format(sa.secrets['device_id'], sa.secrets['Session']['SteamID'],
-                urllib.parse.quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), sa.get_time(), tag)
 
 
 # noinspection PyArgumentList
