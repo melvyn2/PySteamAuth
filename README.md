@@ -11,20 +11,20 @@ Requirements
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam (Python Library)](https://github.com/ValvePython/steam)
-* [PyInstaller (develop)](https://github.com/melvyn2/pyinstaller/tree/QTWE_fix) `pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip`
+* [PyInstaller (develop branch)](https://github.com/pyinstaller/pyinstaller/tree/develop) `pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip`
 
 
 Running Directly
 -----------------
-First, make sure you have all dependencies installed:
+First, make sure you have all dependencies installed, qnd build the PyQt dialogs:
 
-`$ ./make.py deps`
+`$ ./make.py deps && ./make.py pyqt-build`
 
 Because PySteamAuth is a python script, you can run it directly:
 
 `$ python3.6 PySteamAuth/PySteamAuth.py`
 
-Or you can use make.py
+Or you can use `make.py`:
 
 `$ ./make.py run`
 
@@ -53,4 +53,4 @@ When packaged into a folder, the executable cannot be separated from the folder'
 
 Known Issues
 ------------
-* Closing the confirmation dialog sometimes causes a segfault (#1)
+* Confirm-all on multiple confirmation fails (use individual confirmqtion dialog until fixed) (#2)
