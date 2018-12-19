@@ -10,6 +10,18 @@
     <height>577</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>300</width>
+    <height>577</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>300</width>
+    <height>577</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>PySteamAuth</string>
   </property>
@@ -23,26 +35,11 @@
       <height>71</height>
      </rect>
     </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>251</width>
-      <height>101</height>
-     </size>
-    </property>
     <property name="font">
      <font>
       <pointsize>49</pointsize>
       <weight>75</weight>
-      <italic>false</italic>
       <bold>true</bold>
-      <underline>false</underline>
-      <strikeout>false</strikeout>
       <kerning>true</kerning>
      </font>
     </property>
@@ -59,7 +56,7 @@
      <enum>Qt::ScrollBarAlwaysOff</enum>
     </property>
     <property name="sizeAdjustPolicy">
-     <enum>QAbstractScrollArea::AdjustToContents</enum>
+     <enum>QAbstractScrollArea::AdjustIgnored</enum>
     </property>
     <property name="undoRedoEnabled">
      <bool>false</bool>
@@ -76,6 +73,9 @@ p, li { white-space: pre-wrap; }
     </property>
     <property name="acceptRichText">
      <bool>false</bool>
+    </property>
+    <property name="textInteractionFlags">
+     <set>Qt::TextSelectableByMouse</set>
     </property>
    </widget>
    <widget class="QLabel" name="codeLabel">
