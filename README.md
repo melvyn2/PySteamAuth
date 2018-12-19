@@ -2,6 +2,12 @@
 
 A desktop alternative to the Steam Mobile Authenticator
 
+DISCLAIMER
+----------
+ALWAYS KEEP COPIES OF YOUR AUTHENTICATOR FILES AND REVOCATION CODE!
+
+This program is still in development and is very unstable. Use at your own risk.
+
 [Downloads](https://github.com/melvyn2/PySteamAuth/releases)
  ---------
 

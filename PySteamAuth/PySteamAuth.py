@@ -68,8 +68,9 @@ class TimerThread(QtCore.QThread):
             if self.time == 0:
                 self.code_update.emit(self.sa.get_code())
                 self.time = 30 - (self.sa.get_time() % 30)
-            self.time -= 1
+                self.bar_update.emit(self.time)
             pytime.sleep(1)
+            self.time -= 1
 
 
 def restart():
@@ -95,6 +96,8 @@ def error_popup(message, header=''):
         error_dialog.setWindowTitle(str(header))
     error_ui.label_2.setText(str(message))
     error_dialog.exec_()
+    error_dialog.close()
+    error_dialog.deleteLater()
 
 
 # noinspection PyArgumentList
@@ -146,10 +149,11 @@ def test_mafiles(path):
     try:
         with open(os.path.join(path, 'manifest.json')) as manifest_file:
             test_manifest = json.loads(manifest_file.read())
-        with open(os.path.join(path, test_manifest['entries'][0]['filename'])) as maf_file:
-            maf = json.loads(maf_file.read())
-        sa = guard.SteamAuthenticator(secrets=maf)
-        sa.get_code()
+            for i in test_manifest['entries']:
+                with open(os.path.join(path, i['filename'])) as maf_file:
+                    maf = json.loads(maf_file.read())
+                sa = guard.SteamAuthenticator(secrets=maf)
+                sa.get_code()
     except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
         return False
     return True
@@ -207,6 +211,12 @@ def set_auto_accept(sa, trades_checkbox, markets_checkbox):
 
 
 def accept_all(sa, trades=True, markets=True, others=True):
+    refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+    if refreshed == 1:
+        error_popup('Failed to refresh session (connection error).', 'Warning:')
+    elif refreshed == 2:
+        error_popup('Steam session expired. You will be prompted to sign back in.')
+        AccountHandler.full_refresh(sa, main_window)
     confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
     for i in range(len(confs)):
         if (not trades) and confs[i].type == 2:
@@ -237,17 +247,17 @@ def open_conf_dialog(sa):
     conf_dialog = QtWidgets.QDialog()
     conf_ui = PyUIs.ConfirmationDialog.Ui_Dialog()
     conf_ui.setupUi(conf_dialog)
-    conf_dialog.setFixedSize(conf_dialog.size())
     default_pixmap = QtGui.QPixmap(':/icons/placeholder.png')
 
     def load_info():
+        if len(info.confs) == 0:
+            conf_dialog.hide()
+            conf_dialog.close()
+            conf_dialog.deleteLater()
+            error_popup('Nothing to confirm.', '  ')
+            main_ui.confListButton.setText('Confirmations')
+            return
         while True:
-            if len(info.confs) == 0:
-                conf_dialog.hide()
-                conf_dialog.deleteLater()
-                error_popup('Nothing to confirm.', '  ')
-                main_ui.confListButton.setText('Confirmations')
-                return
             try:
                 conf = info.confs[info.index]
                 break
@@ -265,21 +275,47 @@ def open_conf_dialog(sa):
         conf_ui.backButton.setDisabled(info.index == 0)
         conf_ui.nextButton.setDisabled(info.index == (len(info.confs) - 1))
 
+    # noinspection PyShadowingNames
     def accept():
+        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        if refreshed == 1:
+            error_popup('Failed to refresh session (connection error).', 'Warning:')
+        elif refreshed == 2:
+            error_popup('Steam session expired. You will be prompted to sign back in.')
+            AccountHandler.full_refresh(sa, main_window)
         if not info.confs[info.index].accept(sa, error_popup, mafiles_path, manifest):
             error_popup('Failed to accept confirmation.')
         info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
         load_info()
 
+    # noinspection PyShadowingNames
     def deny():
+        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        if refreshed == 1:
+            error_popup('Failed to refresh session (connection error).', 'Warning:')
+        elif refreshed == 2:
+            error_popup('Steam session expired. You will be prompted to sign back in.')
+            AccountHandler.full_refresh(sa, main_window)
+        if not info.confs[info.index].deny(sa, error_popup, mafiles_path, manifest):
+            error_popup('Failed to accept confirmation.')
+        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+        load_info()
+
+    # noinspection PyShadowingNames
+    def refresh_confs():
+        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        if refreshed == 1:
+            error_popup('Failed to refresh session (connection error).', 'Warning:')
+        elif refreshed == 2:
+            error_popup('Steam session expired. You will be prompted to sign back in.')
+            AccountHandler.full_refresh(sa, main_window)
         if not info.confs[info.index].deny(sa, error_popup, mafiles_path, manifest):
             error_popup('Failed to accept confirmation.')
         info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
         load_info()
 
     load_info()
-    conf_ui.refreshButton.clicked.connect(lambda: (setattr(info, 'confs', ConfirmationHandler.fetch_confirmations
-                                          (sa, main_window, mafiles_path, manifest)), load_info()))
+    conf_ui.refreshButton.clicked.connect(refresh_confs)
     conf_ui.nextButton.clicked.connect(lambda: (setattr(info, 'index', ((info.index + 1) if info.index <
                                                                 (len(info.confs) - 1) else info.index)), load_info()))
     conf_ui.backButton.clicked.connect(lambda: (setattr(info, 'index', ((info.index - 1) if info.index > 0
@@ -458,7 +494,20 @@ def main():
         try:
             with open(os.path.join(mafiles_path, 'manifest.json')) as manifest_file:
                 manifest = json.loads(manifest_file.read())
-            with open(os.path.join(mafiles_path, manifest['entries'][0]['filename'])) as maf_file:
+            index = 0
+            if len(manifest['entries']) > 1:
+                ac_dialog = QtWidgets.QDialog()
+                ac_ui = PyUIs.AccountChoserDialog.Ui_Dialog()
+                ac_ui.setupUi(ac_dialog)
+                ac_ui.accountSelectList.header()
+                ac_ui.accountSelectList.addTopLevelItems([QtWidgets.QTreeWidgetItem([str(x['steamid']), x['filename']])
+                                                          for x in manifest['entries']])
+                ac_dialog.rejected.connect(sys.exit)
+                ac_ui.accountSelectList.itemSelectionChanged.connect(
+                    lambda: ac_ui.buttonBox.setDisabled(len(ac_ui.accountSelectList.selectedItems()) != 1))
+                index = ac_ui.accountSelectList.selectedIndexes()[0].row()
+                print(index)
+            with open(os.path.join(mafiles_path, manifest['entries'][index]['filename'])) as maf_file:
                 maf = json.loads(maf_file.read())
             if not test_mafiles(mafiles_path):
                 raise IOError()
@@ -473,7 +522,6 @@ def main():
             setup_ui.pushButton.clicked.connect(lambda: (setup_dialog.accept(), add_authenticator()))
             setup_ui.pushButton_2.clicked.connect(lambda: (copy_mafiles(), setup_dialog.accept()))
             setup_ui.pushButton_3.clicked.connect(sys.exit)
-            setup_dialog.setFixedSize(setup_dialog.size())
             setup_dialog.exec_()
     sa = guard.SteamAuthenticator(maf)
     main_window = QMainWindow()
@@ -495,7 +543,6 @@ def main():
     main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete(sa))
     main_ui.openFolderButton.clicked.connect(lambda: webbrowser.open('file://' + mafiles_path.replace('\\', '/')))
     main_ui.copyButton.clicked.connect(lambda: (main_ui.codeBox.selectAll(), main_ui.codeBox.copy()))
-    main_window.setFixedSize(main_window.size())
     main_window.error_popup_event.connect(error_popup)
     main_window.relogin_event.connect(lambda s: (AccountHandler.full_refresh(s, QMainWindow),
                                                  setattr(auto_accept_thread, 'running', False),

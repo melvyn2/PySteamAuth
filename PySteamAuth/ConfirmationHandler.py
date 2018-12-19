@@ -60,12 +60,6 @@ def generate_query(tag, sa):
 
 
 def fetch_confirmations(sa, main_window, mafiles_path, manifest):
-    refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
-    if refreshed == 1:
-        main_window.error_popup_event.emit('Failed to refresh session (connection error).', 'Warning:')
-    elif refreshed == 2:
-        main_window.error_popup_event.emit('Steam session expired. You will be prompted to sign back in.', '')
-        main_window.relogin_event.emit(sa)
     conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
     jar = requests.cookies.RequestsCookieJar()
     jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
@@ -116,12 +110,6 @@ def confirm(sa, confs, action, main_window, mafiles_path, manifest):
     print(confs)
     if len(confs) == 0:
         return
-    refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
-    if refreshed == 1:
-        main_window.error_popup_event.emit('Failed to refresh session (connection error).', 'Warning:')
-    elif refreshed == 2:
-        main_window.error_popup_event.emit('Steam session expired. You will be prompted to sign back in.', '')
-        main_window.relogin_event.emit(sa)
     jar = requests.cookies.RequestsCookieJar()
     jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
     jar.set('mobileClient', 'android', path='/', domain='.steamcommunity.com')
