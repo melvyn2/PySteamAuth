@@ -496,17 +496,21 @@ def main():
                 manifest = json.loads(manifest_file.read())
             index = 0
             if len(manifest['entries']) > 1:
-                ac_dialog = QtWidgets.QDialog()
-                ac_ui = PyUIs.AccountChoserDialog.Ui_Dialog()
-                ac_ui.setupUi(ac_dialog)
-                ac_ui.accountSelectList.header()
-                ac_ui.accountSelectList.addTopLevelItems([QtWidgets.QTreeWidgetItem([str(x['steamid']), x['filename']])
-                                                          for x in manifest['entries']])
-                ac_dialog.rejected.connect(sys.exit)
-                ac_ui.accountSelectList.itemSelectionChanged.connect(
-                    lambda: ac_ui.buttonBox.setDisabled(len(ac_ui.accountSelectList.selectedItems()) != 1))
-                index = ac_ui.accountSelectList.selectedIndexes()[0].row()
-                print(index)
+                if ('selected_account' in manifest) and manifest['selected_account'] < len(manifest['entries']):
+                    index = manifest['selected_account']
+                else:
+                    ac_dialog = QtWidgets.QDialog()
+                    ac_ui = PyUIs.AccountChoserDialog.Ui_Dialog()
+                    ac_ui.setupUi(ac_dialog)
+                    ac_ui.accountSelectList.header()
+                    ac_ui.accountSelectList.addTopLevelItems([QtWidgets.QTreeWidgetItem([str(x['steamid']), x['filename']])
+                                                              for x in manifest['entries']])
+                    ac_dialog.rejected.connect(sys.exit)
+                    ac_ui.accountSelectList.itemSelectionChanged.connect(
+                        lambda: ac_ui.buttonBox.setDisabled(len(ac_ui.accountSelectList.selectedItems()) != 1))
+                    ac_dialog.exec_()
+                    index = ac_ui.accountSelectList.selectedIndexes()[0].row()
+                    manifest['selected_account'] = index
             with open(os.path.join(mafiles_path, manifest['entries'][index]['filename'])) as maf_file:
                 maf = json.loads(maf_file.read())
             if not test_mafiles(mafiles_path):
