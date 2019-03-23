@@ -21,7 +21,8 @@ import sys
 import shutil
 import os
 import time as pytime
-import webbrowser
+import platform
+import subprocess
 import requests
 from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -49,6 +50,7 @@ class QMainWindow(QtWidgets.QMainWindow):
     relogin_event = QtCore.pyqtSignal(guard.SteamAuthenticator)
 
     def __init__(self, parent=None):
+        # noinspection PyArgumentList
         super(QMainWindow, self).__init__(parent)
 
 
@@ -84,6 +86,20 @@ def restart():
         os.execl(sys.executable, sys.executable)
     else:
         os.execl(sys.executable, sys.executable, os.path.join(os.path.abspath(__file__)))
+
+
+def open_path(path):
+    if platform.system() == "Windows":
+        subprocess.Popen(["explorer", "/select,", path])
+    elif platform.system() == "Darwin":
+        subprocess.Popen(["open", "-R", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+
+
+def save_manifest():
+    with open(os.path.join(mafiles_folder_path, 'manifest.json'), 'w') as manifest_file:
+        manifest_file.write(json.dumps(manifest))
 
 
 # noinspection PyArgumentList
@@ -206,18 +222,17 @@ def set_auto_accept(sa, trades_checkbox, markets_checkbox):
     auto_accept_thread.stop_signal.connect(lambda: (main_ui.tradeCheckBox.setChecked(False),
                                                     main_ui.marketCheckBox.setChecked(False)))
     auto_accept_thread.start()
-    with open(os.path.join(mafiles_path, 'manifest.json'), 'w') as manifest_file:
-        manifest_file.write(json.dumps(manifest))
+    save_manifest()
 
 
 def accept_all(sa, trades=True, markets=True, others=True):
-    refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+    refreshed = AccountHandler.refresh_session(sa, mafiles_folder_path, manifest)
     if refreshed == 1:
         error_popup('Failed to refresh session (connection error).', 'Warning:')
     elif refreshed == 2:
         error_popup('Steam session expired. You will be prompted to sign back in.')
         AccountHandler.full_refresh(sa, main_window)
-    confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+    confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
     for i in range(len(confs)):
         if (not trades) and confs[i].type == 2:
             del confs[i]
@@ -227,11 +242,11 @@ def accept_all(sa, trades=True, markets=True, others=True):
             del confs[i]
     if len(confs) == 0:
         return True
-    return ConfirmationHandler.confirm(sa, confs, 'allow', error_popup, mafiles_path, manifest)
+    return ConfirmationHandler.confirm(sa, confs, 'allow', error_popup)
 
 
 def open_conf_dialog(sa):
-    refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+    refreshed = AccountHandler.refresh_session(sa, mafiles_folder_path, manifest)
     if refreshed == 1:
         error_popup('Failed to refresh session (connection error).', 'Warning:')
     elif refreshed == 2:
@@ -239,11 +254,12 @@ def open_conf_dialog(sa):
         AccountHandler.full_refresh(sa, main_window)
     info = Empty()
     info.index = 0
-    info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+    info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
     if len(info.confs) == 0:
         error_popup('Nothing to confirm.', '  ')
         main_ui.confListButton.setText('Confirmations')
         return
+    # noinspection PyArgumentList
     conf_dialog = QtWidgets.QDialog()
     conf_ui = PyUIs.ConfirmationDialog.Ui_Dialog()
     conf_ui.setupUi(conf_dialog)
@@ -277,41 +293,41 @@ def open_conf_dialog(sa):
 
     # noinspection PyShadowingNames
     def accept():
-        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        refreshed = AccountHandler.refresh_session(sa, mafiles_folder_path, manifest)
         if refreshed == 1:
             error_popup('Failed to refresh session (connection error).', 'Warning:')
         elif refreshed == 2:
             error_popup('Steam session expired. You will be prompted to sign back in.')
             AccountHandler.full_refresh(sa, main_window)
-        if not info.confs[info.index].accept(sa, error_popup, mafiles_path, manifest):
+        if not info.confs[info.index].accept(sa, error_popup):
             error_popup('Failed to accept confirmation.')
-        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
         load_info()
 
     # noinspection PyShadowingNames
     def deny():
-        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        refreshed = AccountHandler.refresh_session(sa, mafiles_folder_path, manifest)
         if refreshed == 1:
             error_popup('Failed to refresh session (connection error).', 'Warning:')
         elif refreshed == 2:
             error_popup('Steam session expired. You will be prompted to sign back in.')
             AccountHandler.full_refresh(sa, main_window)
-        if not info.confs[info.index].deny(sa, error_popup, mafiles_path, manifest):
+        if not info.confs[info.index].deny(sa, error_popup):
             error_popup('Failed to accept confirmation.')
-        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
         load_info()
 
     # noinspection PyShadowingNames
     def refresh_confs():
-        refreshed = AccountHandler.refresh_session(sa, mafiles_path, manifest)
+        refreshed = AccountHandler.refresh_session(sa, mafiles_folder_path, manifest)
         if refreshed == 1:
             error_popup('Failed to refresh session (connection error).', 'Warning:')
         elif refreshed == 2:
             error_popup('Steam session expired. You will be prompted to sign back in.')
             AccountHandler.full_refresh(sa, main_window)
-        if not info.confs[info.index].deny(sa, error_popup, mafiles_path, manifest):
+        if not info.confs[info.index].deny(sa, error_popup, mafiles_folder_path, manifest):
             error_popup('Failed to accept confirmation.')
-        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window, mafiles_path, manifest)
+        info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
         load_info()
 
     load_info()
@@ -384,16 +400,17 @@ def add_authenticator():
         else:
             error_popup(e)
             return
-    if os.path.isdir(mafiles_path):
-        if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+    if os.path.isdir(mafiles_folder_path):
+        if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
+                in os.listdir(mafiles_folder_path):
             error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
             return
         else:
-            shutil.rmtree(mafiles_path)
-    os.mkdir(mafiles_path)
-    with open(os.path.join(mafiles_path, mwa.steam_id + '.maFile'), 'w') as maf:
+            shutil.rmtree(mafiles_folder_path)
+    os.mkdir(mafiles_folder_path)
+    with open(os.path.join(mafiles_folder_path, mwa.steam_id + '.maFile'), 'w') as maf:
         maf.write(json.dumps(sa.secrets))
-    with open(os.path.join(mafiles_path, 'manifest.json'), 'w') as manifest_file:
+    with open(os.path.join(mafiles_folder_path, 'manifest.json'), 'w') as manifest_file:
         manifest_file.write(json.dumps(
             {'periodic_checking': False, 'first_run': True, 'encrypted': False, 'periodic_checking_interval': 5,
             'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
@@ -453,7 +470,7 @@ def remove_authenticator(sa):
     except guard.SteamAuthenticatorError as e:
         error_popup(e)
         return
-    shutil.rmtree(mafiles_path)
+    shutil.rmtree(mafiles_folder_path)
     restart()
 
 
@@ -467,32 +484,33 @@ def copy_mafiles():
         if not test_mafiles(f):
             error_popup('The selected folder does not contain valid maFiles.')
             continue
-        if os.path.isdir(mafiles_path):
-            if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+        if os.path.isdir(mafiles_folder_path):
+            if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
+                    in os.listdir(mafiles_folder_path):
                 error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
                 continue
             else:
-                shutil.rmtree(mafiles_path)
-        shutil.copytree(f, mafiles_path)
+                shutil.rmtree(mafiles_folder_path)
+        shutil.copytree(f, mafiles_folder_path)
         break
 
 
 # noinspection PyUnresolvedReferences,PyArgumentList
 def main():
-    global mafiles_path, app, manifest, timer_thread, main_window, main_ui
+    global mafiles_folder_path, mafiles_path, app, manifest, timer_thread, main_window, main_ui
     base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
         else os.path.dirname(os.path.abspath(__file__))
     if test_mafiles(os.path.join(base_path, 'maFiles')):
-        mafiles_path = os.path.join(base_path, 'maFiles')
+        mafiles_folder_path = os.path.join(base_path, 'maFiles')
     elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in sys.argv:
-        mafiles_path = os.path.expanduser(os.path.join('~', '.maFiles'))
+        mafiles_folder_path = os.path.expanduser(os.path.join('~', '.maFiles'))
     else:
-        mafiles_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) ==\
+        mafiles_folder_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) ==\
                                       'PySteamAuth' else os.path.expanduser(os.path.join('~', '.maFiles'))
     app = QtWidgets.QApplication(sys.argv)
     while True:
         try:
-            with open(os.path.join(mafiles_path, 'manifest.json')) as manifest_file:
+            with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
                 manifest = json.loads(manifest_file.read())
             index = 0
             if len(manifest['entries']) > 1:
@@ -503,22 +521,24 @@ def main():
                     ac_ui = PyUIs.AccountChoserDialog.Ui_Dialog()
                     ac_ui.setupUi(ac_dialog)
                     ac_ui.accountSelectList.header()
-                    ac_ui.accountSelectList.addTopLevelItems([QtWidgets.QTreeWidgetItem([str(x['steamid']), x['filename']])
-                                                              for x in manifest['entries']])
+                    ac_ui.accountSelectList.addTopLevelItems([QtWidgets.QTreeWidgetItem([str(x['steamid']),
+                                                              x['filename']]) for x in manifest['entries']])
                     ac_dialog.rejected.connect(sys.exit)
                     ac_ui.accountSelectList.itemSelectionChanged.connect(
                         lambda: ac_ui.buttonBox.setDisabled(len(ac_ui.accountSelectList.selectedItems()) != 1))
                     ac_dialog.exec_()
                     index = ac_ui.accountSelectList.selectedIndexes()[0].row()
                     manifest['selected_account'] = index
-            with open(os.path.join(mafiles_path, manifest['entries'][index]['filename'])) as maf_file:
+            mafiles_path = os.path.join(mafiles_folder_path, manifest['entries'][index]['filename'])
+            with open(os.path.join(mafiles_folder_path, manifest['entries'][index]['filename'])) as maf_file:
                 maf = json.loads(maf_file.read())
-            if not test_mafiles(mafiles_path):
+            if not test_mafiles(mafiles_folder_path):
                 raise IOError()
             break
         except (IOError, ValueError, TypeError, IndexError, KeyError):
-            if os.path.isdir(mafiles_path):
-                if any('maFile' in x for x in os.listdir(mafiles_path)) or 'manifest.json' in os.listdir(mafiles_path):
+            if os.path.isdir(mafiles_folder_path):
+                if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
+                        in os.listdir(mafiles_folder_path):
                     error_popup('Failed to load maFiles.')
             setup_dialog = QtWidgets.QDialog()
             setup_ui = PyUIs.SetupDialog.Ui_Dialog()
@@ -545,7 +565,9 @@ def main():
     main_ui.removeButton.clicked.connect(lambda: remove_authenticator(sa))
     main_ui.createBCodesButton.clicked.connect(lambda: backup_codes_popup(sa))
     main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete(sa))
-    main_ui.openFolderButton.clicked.connect(lambda: webbrowser.open('file://' + mafiles_path.replace('\\', '/')))
+    main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(mafiles_path))
+    main_ui.actionSwitch.triggered.connect(lambda c: (manifest.pop('selected_account'), save_manifest(),
+                                                      restart()))
     main_ui.copyButton.clicked.connect(lambda: (main_ui.codeBox.selectAll(), main_ui.codeBox.copy()))
     main_window.error_popup_event.connect(error_popup)
     main_window.relogin_event.connect(lambda s: (AccountHandler.full_refresh(s, QMainWindow),

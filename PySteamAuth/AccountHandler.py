@@ -95,7 +95,6 @@ def get_mobilewebauth(sa, main_window, force_login=False):
                 login_ui.label_3.setText('Incorrect username and/or password.')
             else:
                 login_ui.label_3.setText('Incorrect username and/or password,\n or too many attempts.')
-            print(e)
         except webauth.CaptchaRequired:
             required = 'captcha'
             break

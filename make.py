@@ -92,21 +92,22 @@ if action == 'build':
 elif action == 'install':
     if sys.platform == 'darwin':
         if not os.path.isdir(os.path.join('bin', sys.platform, 'PySteamAuth.app')):
-            print('You must build the program first, like so:\n    {0} build <program>'.format(sys.argv[0]))
+            print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
             sys.exit()
-        elif len(sys.argv) == 3:
-            installdir = os.path.expanduser(os.path.join(('~' if '--user' in sys.argv else os.sep),
-                'Applications', 'PySteamAuth.app'))
         else:
-            installdir = os.path.join(os.sep, 'Applications', 'PySteamAuth.app')
+            installdir = os.path.expanduser(os.path.join(('~' if '--user' in sys.argv else os.sep),
+                                                         'Applications', 'PySteamAuth.app'))
         if os.path.isdir(installdir):
-            update = input('You already have a copy of PySteamAuth at {0}. '
-                'Would you like to remove it and continue? (y/n) '.format(installdir))
-            if update == 'y':
+            if '-y' in sys.argv:
                 delete(installdir)
             else:
-                print('Aborted.')
-                sys.exit()
+                update = input('You already have a copy of PySteamAuth at {0}. '
+                    'Would you like to remove it and continue? (y/n) '.format(installdir))
+                if update == 'y':
+                    delete(installdir)
+                else:
+                    print('Aborted.')
+                    sys.exit()
         shutil.copytree(os.path.join('bin', sys.platform, 'PySteamAuth.app'), installdir)
         print('The PySteamAuth application bundle has been installed in the directory {0}'
             ' under the name \'PySteamAuth.app\'.'.format(installdir))

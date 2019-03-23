@@ -40,4 +40,4 @@ exe = EXE(pyz,
 
 if sys.platform == 'darwin':
 	# noinspection PyUnresolvedReferences
-	app = BUNDLE(exe, name='PySteamAuth.app', icon=None, bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
+	app = BUNDLE(exe, name='PySteamAuth.app', icon=None)
