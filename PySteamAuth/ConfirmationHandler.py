@@ -46,11 +46,11 @@ class Confirmation(object):
         self.time = conf_time
         self.icon_url = conf_icon_url
 
-    def accept(self, sa, main_window, mafiles_path, manifest):
-            return confirm(sa, [self], 'allow', main_window, mafiles_path, manifest)
+    def accept(self, sa, main_window):
+            return confirm(sa, [self], 'allow', main_window)
 
-    def deny(self, sa, main_window, mafiles_path, manifest):
-            return confirm(sa, [self], 'cancel', main_window, mafiles_path, manifest)
+    def deny(self, sa, main_window):
+            return confirm(sa, [self], 'cancel', main_window)
 
 
 def generate_query(tag, sa):
@@ -59,7 +59,7 @@ def generate_query(tag, sa):
                 urllib.parse.quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), sa.get_time(), tag)
 
 
-def fetch_confirmations(sa, main_window, mafiles_path, manifest):
+def fetch_confirmations(sa, main_window):
     conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
     jar = requests.cookies.RequestsCookieJar()
     jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
@@ -105,9 +105,8 @@ def fetch_confirmations(sa, main_window, mafiles_path, manifest):
     return ret
 
 
-def confirm(sa, confs, action, main_window, mafiles_path, manifest):
+def confirm(sa, confs, action, main_window):
     data = 'op=' + action + '&' + generate_query(action, sa)
-    print(confs)
     if len(confs) == 0:
         return
     jar = requests.cookies.RequestsCookieJar()
