@@ -1,2 +1,4 @@
 PySteamAuth/maFiles/
 PySteamAuth/PyUIs/*
+bin/
+build/

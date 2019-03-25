@@ -162,8 +162,12 @@
     </rect>
    </property>
    <property name="text">
-    <string>Type: [Type]
-ID: [ID]</string>
+    <string>Time: [Time]
+ID: [ID]
+Type: [Type]</string>
+   </property>
+   <property name="wordWrap">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>
