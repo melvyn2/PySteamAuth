@@ -55,7 +55,7 @@ and into a folder for other OSes, with `.exe` added at the end for Windows:
 
 You can change this behavior by passing `--force-onefile` or `--force-onedir` to `make.py`.
 Packaging into a single file sometimes causes issues, so only use `--force-onefile` when necessary.
-When packaged into a folder, the executable cannot be separated from the folder's contents.
+When packaged into a folder, the executable cannot be separated from the folder's contents, but it launches much faster.
 
 Known Issues
 ------------

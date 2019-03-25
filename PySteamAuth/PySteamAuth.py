@@ -280,7 +280,7 @@ def open_conf_dialog(sa):
             except IndexError:
                 info.index -= 1
         conf_ui.titleLabel.setText(conf.description)
-        conf_ui.infoLabel.setText('{0}\n{1}\nID: {2}\nType: {3}'
+        conf_ui.infoLabel.setText('{0}\nTime: {1}\nID: {2}\nType: {3}'
             .format(conf.sub_description, conf.time, conf.id, conf.type_str))
         if conf.icon_url:
             pixmap = QtGui.QPixmap()
@@ -552,6 +552,8 @@ def main():
     main_ui = PyUIs.MainWindow.Ui_MainWindow()
     main_ui.setupUi(main_window)
     main_ui.codeBox.setText(sa.get_code())
+    main_ui.codeBox.setAlignment(QtCore.Qt.AlignCenter)
+    main_ui.copyButton.clicked.connect(lambda: (main_ui.codeBox.selectAll(), main_ui.codeBox.copy()))
     main_ui.codeTimeBar.setTextVisible(False)
     main_ui.codeTimeBar.valueChanged.connect(main_ui.codeTimeBar.repaint)
     main_ui.tradeCheckBox.setChecked(manifest['auto_confirm_trades'])
@@ -568,7 +570,6 @@ def main():
     main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(mafiles_path))
     main_ui.actionSwitch.triggered.connect(lambda c: (manifest.pop('selected_account'), save_manifest(),
                                                       restart()))
-    main_ui.copyButton.clicked.connect(lambda: (main_ui.codeBox.selectAll(), main_ui.codeBox.copy()))
     main_window.error_popup_event.connect(error_popup)
     main_window.relogin_event.connect(lambda s: (AccountHandler.full_refresh(s, QMainWindow),
                                                  setattr(auto_accept_thread, 'running', False),
@@ -576,7 +577,8 @@ def main():
                                                  main_ui.marketCheckBox.setChecked(False)))
     timer_thread = TimerThread(sa, 30 - (sa.get_time() % 30))
     timer_thread.bar_update.connect(main_ui.codeTimeBar.setValue)
-    timer_thread.code_update.connect(main_ui.codeBox.setText)
+    timer_thread.code_update.connect(lambda x: (main_ui.codeBox.setText(x),
+                                                main_ui.codeBox.setAlignment(QtCore.Qt.AlignCenter)))
     timer_thread.start()
     set_auto_accept(sa, main_ui.tradeCheckBox, main_ui.marketCheckBox)
 

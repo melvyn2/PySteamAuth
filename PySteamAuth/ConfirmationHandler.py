@@ -59,8 +59,7 @@ def generate_query(tag, sa):
                 urllib.parse.quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), sa.get_time(), tag)
 
 
-def fetch_confirmations(sa, main_window):
-    conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
+def generate_cookiejar(sa):
     jar = requests.cookies.RequestsCookieJar()
     jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
     jar.set('mobileClient', 'android', path='/', domain='.steamcommunity.com')
@@ -69,22 +68,26 @@ def fetch_confirmations(sa, main_window):
     jar.set('steamLoginSecure', str(sa.secrets['Session']['SteamLoginSecure']), path='/', domain='.steamcommunity.com')
     jar.set('Steam_Language', 'english', path='/', domain='.steamcommunity.com')
     jar.set('sessionid', str(sa.secrets['Session']['SessionID']), path='/', domain='.steamcommunity.com')
+    return jar
+
+
+def fetch_confirmations(sa, main_window):
+    conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
+    jar = generate_cookiejar(sa)
     try:
         r = requests.get(conf_url, cookies=jar)
     except requests.exceptions.ConnectionError:
         main_window.error_popup_event.emit('Connection Error.', '')
         return []
-    page = ''.join(r.text.replace('\t', '').splitlines())
     # with open('page.html') as f:
     #     r = Empty()
     #     r.text = f.read()
-    #     print(r.text)
+    page = ''.join(r.text.replace('\t', '').splitlines())
     conf_full_regex = '<div class="mobileconf_list_entry"((.|\n)*?)' + \
                       '<div class="mobileconf_list_entry_sep"></div>'
     if '<div>Nothing to confirm</div>' in page:
         return []
     ret = []
-
     for i in [x[0] for x in re.findall(conf_full_regex, page)]:
         try:
             icon_url = re.findall('<img src="(.*?)"', i)[0].replace('.jpg', '_medium.jpg')
@@ -109,14 +112,7 @@ def confirm(sa, confs, action, main_window):
     data = 'op=' + action + '&' + generate_query(action, sa)
     if len(confs) == 0:
         return
-    jar = requests.cookies.RequestsCookieJar()
-    jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
-    jar.set('mobileClient', 'android', path='/', domain='.steamcommunity.com')
-    jar.set('steamid', str(sa.secrets['Session']['SteamID']), path='/', domain='.steamcommunity.com')
-    jar.set('steamLogin', str(sa.secrets['Session']['SteamLogin']), path='/', domain='.steamcommunity.com')
-    jar.set('steamLoginSecure', str(sa.secrets['Session']['SteamLoginSecure']), path='/', domain='.steamcommunity.com')
-    jar.set('Steam_Language', 'english', path='/', domain='.steamcommunity.com')
-    jar.set('sessionid', str(sa.secrets['Session']['SessionID']), path='/', domain='.steamcommunity.com')
+    jar = generate_cookiejar(sa)
     if len(confs) == 1:
         url = 'https://steamcommunity.com/mobileconf/ajaxop?'
         data += '&cid=' + confs[0].id + '&ck=' + confs[0].key

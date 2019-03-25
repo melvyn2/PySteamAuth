@@ -56,7 +56,7 @@ def build_qt_files():
         pyuis_dir.mkdir()
     else:
         shutil.rmtree(str(pyuis_dir.resolve()))
-        pathlib.Path(pyuis_dir).mkdir()
+        pyuis_dir.mkdir()
     built_files = []
     for f in uis_dir.rglob('*.ui'):
         subprocess.call([sys.executable, '-m', 'PyQt5.uic.pyuic', str(f), '-o',
@@ -68,6 +68,7 @@ def build_qt_files():
         built_files.append(str(f.name.replace('.qrc', '_rc')))
     with open(str(psa_dir.joinpath('PyUIs', '__init__.py')), 'w') as f:
         f.write('from . import ' + ', '.join(sorted(built_files)))
+    print('Built', len(built_files), 'PyUI files.')
 
 
 action = sys.argv[1].lower() if len(sys.argv) >= 2 else None
