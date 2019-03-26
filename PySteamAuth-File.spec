@@ -21,23 +21,21 @@ import os
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],
-			pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')])
+             pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')])
 
 # noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data)
 
 # noinspection PyUnresolvedReferences
 exe = EXE(pyz,
-		a.scripts,
-		a.binaries + [('msvcp100.dll', 'C:\\Windows\\System32\\msvcp100.dll', 'BINARY'),
-			('msvcr100.dll', 'C:\\Windows\\System32\\msvcr100.dll', 'BINARY')]
-		if sys.platform == 'win32' else a.binaries,
-		a.zipfiles,
-		a.datas,
-		name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''),
-		upx=True,
-		console=False)
+          a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
+          name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''),
+          upx=True,
+          console=False)
 
 if sys.platform == 'darwin':
-	# noinspection PyUnresolvedReferences
-	app = BUNDLE(exe, name='PySteamAuth.app', icon=None)
+    # noinspection PyUnresolvedReferences
+    app = BUNDLE(exe, name='PySteamAuth.app', icon=None)

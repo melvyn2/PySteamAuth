@@ -161,16 +161,30 @@ def backup_codes_delete(sa):
         error_popup(e)
 
 
-def test_mafiles(path):
+def test_mafiles(path, entry=False):
+    entry_found = False
     try:
         with open(os.path.join(path, 'manifest.json')) as manifest_file:
             test_manifest = json.loads(manifest_file.read())
-            for i in test_manifest['entries']:
-                with open(os.path.join(path, i['filename'])) as maf_file:
-                    maf = json.loads(maf_file.read())
-                sa = guard.SteamAuthenticator(secrets=maf)
-                sa.get_code()
-    except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
+            if entry:
+                try:
+                    with open(os.path.join(path, test_manifest['entries'][entry]['filename'])) as maf_file:
+                        maf = json.loads(maf_file.read())
+                    sa = guard.SteamAuthenticator(secrets=maf)
+                    sa.get_code()
+                except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
+                    return False
+            else:
+                for i in test_manifest['entries']:
+                    try:
+                        with open(os.path.join(path, i['filename'])) as maf_file:
+                            maf = json.loads(maf_file.read())
+                        sa = guard.SteamAuthenticator(secrets=maf)
+                        sa.get_code()
+                        entry_found = True
+                    except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
+                        return entry_found
+    except (IOError, json.decoder.JSONDecodeError):
         return False
     return True
 
@@ -231,7 +245,8 @@ def accept_all(sa, trades=True, markets=True, others=True):
         error_popup('Failed to refresh session (connection error).', 'Warning:')
     elif refreshed == 2:
         error_popup('Steam session expired. You will be prompted to sign back in.')
-        AccountHandler.full_refresh(sa, main_window)
+        if not AccountHandler.full_refresh(sa, main_window):
+            return
     confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
     for i in range(len(confs)):
         if (not trades) and confs[i].type == 2:
@@ -251,7 +266,9 @@ def open_conf_dialog(sa):
         error_popup('Failed to refresh session (connection error).', 'Warning:')
     elif refreshed == 2:
         error_popup('Steam session expired. You will be prompted to sign back in.')
-        AccountHandler.full_refresh(sa, main_window)
+        if not AccountHandler.full_refresh(sa, main_window):
+            main_ui.confListButton.setText('Confirmations')
+            return
     info = Empty()
     info.index = 0
     info.confs = ConfirmationHandler.fetch_confirmations(sa, main_window)
@@ -496,7 +513,7 @@ def copy_mafiles():
 
 
 # noinspection PyUnresolvedReferences,PyArgumentList
-def main():
+def main():  # TODO debug menubar actions
     global mafiles_folder_path, mafiles_path, app, manifest, timer_thread, main_window, main_ui
     base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
         else os.path.dirname(os.path.abspath(__file__))
@@ -530,16 +547,21 @@ def main():
                     index = ac_ui.accountSelectList.selectedIndexes()[0].row()
                     manifest['selected_account'] = index
             mafiles_path = os.path.join(mafiles_folder_path, manifest['entries'][index]['filename'])
-            with open(os.path.join(mafiles_folder_path, manifest['entries'][index]['filename'])) as maf_file:
+            with open(os.path.join(mafiles_folder_path, manifest['entries'][index]['filename']), 'r+') as maf_file:
                 maf = json.loads(maf_file.read())
-            if not test_mafiles(mafiles_folder_path):
+                if 'device_id' not in maf:
+                    maf['device_id'] = guard.generate_device_id(maf['steamid'])
+                    maf_file.seek(0)
+                    maf_file.write(json.dumps(maf))
+                    maf_file.truncate()
+            if not test_mafiles(mafiles_folder_path, index):
                 raise IOError()
             break
         except (IOError, ValueError, TypeError, IndexError, KeyError):
             if os.path.isdir(mafiles_folder_path):
                 if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                         in os.listdir(mafiles_folder_path):
-                    error_popup('Failed to load maFiles.')
+                    error_popup('Failed to load maFile.')
             setup_dialog = QtWidgets.QDialog()
             setup_ui = PyUIs.SetupDialog.Ui_Dialog()
             setup_ui.setupUi(setup_dialog)
