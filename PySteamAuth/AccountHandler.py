@@ -29,6 +29,7 @@ except ImportError:
 
 class Empty:
     pass
+# TODO move file handling here
 
 
 def refresh_session(sa, mafiles_path, manifest):
@@ -69,7 +70,7 @@ def get_mobilewebauth(sa, main_window, force_login=False):
     endfunc = Empty()
     endfunc.endfunc = False
     login_dialog = QtWidgets.QDialog()
-    login_ui = PyUIs.LoginDialog.Ui_Dialog()
+    login_ui = PyUIs.LogInDialog.Ui_Dialog()
     login_ui.setupUi(login_dialog)
     login_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
     login_ui.lineEdit.setDisabled(force_login)
