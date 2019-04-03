@@ -17,6 +17,7 @@
 
 
 import os
+import errno
 import pathlib
 import pkgutil
 import shutil
@@ -43,9 +44,9 @@ def delete(obj):
             shutil.rmtree(obj)
         else:
             os.remove(obj)
-    except OSError as e:
-        if e.errno != 2:
-            print(e)
+    except OSError as err:
+        if err.errno != 2:
+            raise err
 
 
 def build_qt_files():
@@ -73,13 +74,13 @@ def build_qt_files():
 
 action = sys.argv[1].lower() if len(sys.argv) >= 2 else None
 
-if action == 'build':
+if action == 'build':  # TODO add travis & appveyor CI
     clean()
     if '--dont-build-qt' not in sys.argv:
         build_qt_files()
     try:
         from PyInstaller.__main__ import run as freeze
-        if ('linux' in sys.platform or '--force-onefile' in sys.argv) and '--force-ondir' not in sys.argv:
+        if '--compact' in sys.argv:
             freeze(['--distpath', os.path.join('bin', sys.platform), '--workpath', os.path.join('build', sys.platform),
                     'PySteamAuth-File.spec'])
         else:
@@ -91,81 +92,77 @@ if action == 'build':
         sys.exit(1)
 
 elif action == 'install':
-    if sys.platform == 'darwin':
-        if not os.path.isdir(os.path.join('bin', sys.platform, 'PySteamAuth.app')):
-            print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
-            sys.exit()
-        else:
-            installdir = os.path.expanduser(os.path.join(('~' if '--user' in sys.argv else os.sep),
-                                                         'Applications', 'PySteamAuth.app'))
-        if os.path.isdir(installdir):
-            if '-y' in sys.argv:
-                delete(installdir)
-            else:
-                update = input('You already have a copy of PySteamAuth at {0}. '
-                    'Would you like to remove it and continue? (y/n) '.format(installdir))
-                if update == 'y':
-                    delete(installdir)
+    try:
+        if sys.platform == 'darwin':
+            if not os.path.isdir(os.path.join('bin', sys.platform, 'PySteamAuth.app')):
+                print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
+                sys.exit()
+
+            if os.path.isdir(os.path.join(os.sep, 'Applications', 'PySteamAuth.app')):
+                if '-y' in sys.argv or (input('You already have a copy of PySteamAuth installed. '
+                                              'Would you like to remove it and continue? [Y/n] ') in ['y', '']):
+                    delete(os.path.join(os.sep, 'Applications', 'PySteamAuth.app'))
                 else:
                     print('Aborted.')
                     sys.exit()
-        shutil.copytree(os.path.join('bin', sys.platform, 'PySteamAuth.app'), installdir)
-        print('The PySteamAuth application bundle has been installed in the directory {0}'
-            ' under the name \'PySteamAuth.app\'.'.format(installdir))
-    elif 'linux' in sys.platform:
-        if not os.path.isfile(os.path.join('dist', 'PySteamAuth')):
-            print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
-            sys.exit()
-        elif len(sys.argv) == 3:
-            installdir = os.path.expanduser(os.path.join('~' if '--user' in sys.argv else
-                (os.sep, 'usr', 'local'), 'bin'))
-        else:
-            installdir = os.path.join(os.sep, 'usr', 'local', 'bin')
-
-        if os.path.isfile(os.path.join(installdir, 'PySteamAuth')):
-            update = input('You already have a copy of PySteamAuth at {0}. '
-                           'Would you like to remove it and continue? (y/n) '.format(os.path.join(installdir,
-                                                                                                  'PySteamAuth')))
-            if update == 'y':
-                delete(os.path.join(installdir, 'PySteamAuth'))
-            else:
-                print('Aborted.')
+            shutil.copytree(os.path.join('bin', sys.platform, 'PySteamAuth.app'), os.path.join(os.sep, 'Applications'))
+            print('PySteamAuth has been installed to /Applications')
+        elif 'linux' in sys.platform:
+            if not os.path.exists(os.path.join('dist', sys.platform, 'PySteamAuth')):
+                print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
                 sys.exit()
-        shutil.copy(os.path.join('bin', sys.platform, 'PySteamAuth'), os.path.join(os.sep, 'usr', 'local', 'bin'))
-        print('PySteamAuth has been installed in the directory {0} under the name \'PySteamAuth\'.'.format(installdir))
-        if '--user' in sys.argv:
-            print('Make sure that \'~/bin\' is in your PATH.')
-
-    elif sys.platform in ['windows', 'win32']:
-        if not os.path.isfile(os.path.join('dist', 'PySteamAuth.exe')):
-            print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
-            sys.exit()
-        elif len(sys.argv) == 3:
-            print('--user is not supported on windows.')
-            sys.exit()
-        else:
-            installdir = os.path.join(os.sep, 'Program Files' + (' (x86)' if struct.calcsize('P') == 4 else ''),
-                                      'PySteamAuth')
-
-        if os.path.isdir(installdir):
-            update = input('You already have a copy of PySteamAuth at {0}. '
-                           'Would you like to remove it and continue? (y/n) '.format(
-                                os.path.join(installdir, 'PySteamAuth')))
-            if update == 'y':
-                delete(installdir)
+            if os.path.exists(os.path.join(os.sep, 'usr', 'local', 'bin', 'PySteamAuth')):
+                if '-y' in sys.argv or (input('You already have a copy of PySteamAuth installed. '
+                                              'Would you like to remove it and continue? [Y/n] ') in ['y', '']):
+                    delete(os.path.join(os.sep, 'usr', 'local', 'opt', 'PySteamAuth'))
+                    delete(os.path.join(os.sep, 'usr', 'local', 'bin', 'PySteamAuth'))
+                else:
+                    print('Aborted.')
+                    sys.exit()
+            if os.path.isdir(os.path.join('dist', sys.platform, 'PySteamAuth')):
+                shutil.copytree(os.path.join('dist', sys.platform, 'PySteamAuth'),
+                                os.path.join(os.sep, 'usr', 'local', 'opt', 'PySteamAuth'))
+                os.symlink(os.path.join(os.sep, 'usr', 'local', 'opt', 'PySteamAuth', 'PySteamAuth'),
+                           os.path.join(os.sep, 'usr', 'local', 'bin', 'PySteamAuth'))
+                print('PySteamAuth has been installed to /usr/local/opt/PySteamAuth and symlinked into /usr/local/bin.')
             else:
-                print('Aborted.')
+                shutil.copy2(os.path.join('dist', sys.platform, 'PySteamAuth'),
+                             os.path.join(os.sep, 'usr', 'local', 'bin'))
+                print('PySteamAuth has been installed to /usr/local/bin.')
+            if os.path.join(os.sep, 'usr', 'local', 'bin') not in os.environ['PATH']:
+                print('/usr/local/bin is not in your $PATH')
+        elif sys.platform in ['windows', 'win32']:
+            if not os.path.exists(os.path.join('dist', sys.platform, 'PySteamAuth')):
+                print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
                 sys.exit()
-        shutil.copytree(os.path.join('bin', sys.platform), installdir)
-        print('PySteamAuth has been installed in the directory {0} under the name \'PySteamAuth\'.'.format(
-            installdir))
-    else:
-        print('Unrecognized OS. \'{0} build <program>\' will build the executable and put it in the '
-              '\'dist\' directory.'.format(sys.argv[0]))
+            pf = 'Program Files' + (' (x86)' if struct.calcsize('P') == 4 else '')
+            if os.path.isdir(os.path.join(os.sep, pf, 'PySteamAuth')):
+                if '-y' in sys.argv or\
+                        (input('You already have a copy of PySteamAuth at \\{0}\\PySteamAuth. '
+                               'Would you like to remove it and continue? [Y/n] '.format(pf)) in ['y', '']):
+                    delete(os.path.join(os.sep, pf, 'PySteamAuth'))
+                else:
+                    print('Aborted.')
+                    sys.exit()
+            if os.path.isdir(os.path.join('dist', sys.platform, 'PySteamAuth')):
+                shutil.copytree(os.path.join('dist', sys.platform, 'PySteamAuth'),
+                                os.path.join(os.sep, pf, 'PySteamAuth'))
+            else:
+                os.mkdir(os.path.join('dist', sys.platform, 'PySteamAuth'))
+                shutil.copy2(os.path.join('dist', sys.platform, 'PySteamAuth.exe'),
+                             os.path.join(os.sep, pf, 'PySteamAuth'))
+            os.link(os.path.join(os.sep, pf, 'PySteamAuth', 'PySteamAuth.exe'),
+                    os.path.join(os.environ['userprofile'], 'Start Menu', 'Programs'))
+        else:
+            print('Unrecognized OS. \'{0} build <program>\' will build the executable and put it in the '
+                  '\'dist\' directory.'.format(sys.argv[0]))
+    except IOError as e:
+        if e.errno in [errno.EACCES, errno.EPERM]:
+            print('Permission denied; Try with sudo?')
 
 
 elif action == 'run':
-    if '--dont-build-qt' not in sys.argv:
+    if '--dont-rebuild-ui' not in sys.argv:
         build_qt_files()
     from PySteamAuth import PySteamAuth
     PySteamAuth.main()
@@ -180,28 +177,22 @@ elif action == 'deps':
     for i in deps:
         if i not in installed_packages:
             missing.append(i)
-    if 'PyInstaller' not in missing:
-        import PyInstaller
-        if PyInstaller.__version__[:8] != '3.5.dev0':
-            missing.append('PyInstaller')
     import setuptools
     if setuptools.__version__ < '39':
         missing.append('setuptools')
     if len(missing) > 0:
         print('You are missing or need to upgrade/patch the following: ' + ', '.join(missing))
         if '-y' in sys.argv or input('Install them or it? (y/n) ') == 'y':
-            to_install = ['https://github.com/pyinstaller/pyinstaller/archive/develop.zip' if x == 'PyInstaller' else x
-                          for x in missing]
             try:
                 import pip
                 # noinspection PyUnresolvedReferences
-                pip.main(['install', '--upgrade'] + to_install)
+                pip.main(['install', '--upgrade'] + missing)
             except AttributeError:
                 try:
                     # noinspection PyProtectedMember
                     import pip._internal
                     # noinspection PyProtectedMember
-                    pip._internal.main(['install', '--upgrade'] + to_install)
+                    pip._internal.main(['install', '--upgrade'] + missing)
                 except ImportError:
                     print('Pip is missing.')
                     sys.exit(1)
@@ -217,11 +208,10 @@ elif action == 'deps':
     for i in deps:
         if i not in installed_packages:
             missing.append(i)
-    if 'PyInstaller' not in missing:
-        import PyInstaller
-
-        if PyInstaller.__version__[:8] != '3.5.dev0':
-            missing.append('PyInstaller')
+    import importlib
+    importlib.reload(setuptools)
+    if setuptools.__version__ < '39':
+        missing.append('setuptools')
 
     print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else
           'You have all dependencies installed!')
@@ -231,4 +221,5 @@ elif action == 'pyqt-build':
     build_qt_files()
 
 else:
-    print('Invalid option\nPossible options: build, install [--user], run, clean, deps [-y], pyqt-build')
+    print('Invalid option\nPossible options: build [--compact], install, run [--dont-rebuild-ui], clean, deps [-y],'
+          ' pyqt-build')
