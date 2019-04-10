@@ -18,7 +18,7 @@
 
 import os
 import errno
-import pathlib
+import glob
 import pkgutil
 import shutil
 import subprocess
@@ -34,8 +34,8 @@ def clean():
     delete(os.path.join('build', sys.platform))
     delete(os.path.join('bin', sys.platform))
 
-    for f in pathlib.Path('.').resolve().rglob('*.pyc'):
-        f.unlink()
+    for f in glob.iglob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '*.pyc'), recursive=True):
+        delete(f)
 
 
 def delete(obj):
@@ -50,24 +50,21 @@ def delete(obj):
 
 
 def build_qt_files():
-    psa_dir = pathlib.PurePath(pathlib.Path(__file__).resolve().parent).joinpath('PySteamAuth')
-    pyuis_dir = pathlib.Path(psa_dir.joinpath('PyUIs'))
-    uis_dir = pathlib.Path(psa_dir.joinpath('UIs'))
-    if not pyuis_dir.exists():
-        pyuis_dir.mkdir()
-    else:
-        shutil.rmtree(str(pyuis_dir.resolve()))
-        pyuis_dir.mkdir()
+    psa_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'PySteamAuth')
+    pyuis_dir = os.path.join(psa_dir, 'PyUIs')
+    uis_dir = os.path.join(psa_dir, 'UIs')
+    shutil.rmtree(pyuis_dir)
+    os.mkdir(pyuis_dir)
     built_files = []
-    for f in uis_dir.rglob('*.ui'):
-        subprocess.call([sys.executable, '-m', 'PyQt5.uic.pyuic', str(f), '-o',
-                         str(pyuis_dir.joinpath(f.name.replace('.ui', '.py')))])
-        built_files.append(str(f.name.replace('.ui', '')))
-    for f in uis_dir.rglob('*.qrc'):
-        subprocess.call([sys.executable, '-m', 'PyQt5.pyrcc_main', str(f), '-o',
-                         str(pyuis_dir.joinpath(f.name.replace('.qrc', '_rc.py')))])
-        built_files.append(str(f.name.replace('.qrc', '_rc')))
-    with open(str(psa_dir.joinpath('PyUIs', '__init__.py')), 'w') as f:
+    for f in glob.iglob(os.path.join(uis_dir, '*.ui')):
+        subprocess.call([sys.executable, '-m', 'PyQt5.uic.pyuic', f, '-o',
+                         os.path.join(pyuis_dir, os.path.basename(f).replace('.ui', '.py'))])
+        built_files.append(os.path.basename(f).replace('.ui', ''))
+    for f in glob.iglob(os.path.join(uis_dir, '*.qrc')):
+        subprocess.call([sys.executable, '-m', 'PyQt5.pyrcc_main', f, '-o',
+                         os.path.join(pyuis_dir, os.path.basename(f).replace('.qrc', '_rc.py'))])
+        built_files.append(os.path.basename(f).replace('.qrc', '_rc'))
+    with open(os.path.join(pyuis_dir, '__init__.py'), 'w') as f:
         f.write('from . import ' + ', '.join(sorted(built_files)))
     print('Built', len(built_files), 'PyUI files.')
 
