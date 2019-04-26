@@ -41,7 +41,7 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="setupButton">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -70,7 +70,7 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QPushButton" name="importButton">
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -83,7 +83,7 @@
     <string>Open existing maFiles</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_3">
+  <widget class="QPushButton" name="quitButton">
    <property name="geometry">
     <rect>
      <x>280</x>

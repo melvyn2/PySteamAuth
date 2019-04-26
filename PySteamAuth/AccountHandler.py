@@ -19,12 +19,14 @@ import urllib.parse
 from steam import webauth
 from PyQt5 import QtWidgets, QtGui
 import json
-import os
 try:
     from . import PyUIs
+    from .PySteamAuth import error_popup
 except ImportError:
     # noinspection PyUnresolvedReferences
     import PyUIs
+    # noinspection PyUnresolvedReferences
+    from PySteamAuth import error_popup
 
 
 class Empty:
@@ -32,70 +34,69 @@ class Empty:
 # TODO move file handling here
 
 
-def refresh_session(sa, mafiles_path, manifest):
+def refresh_session(sa):  # TODO only run this when steammobile://lostauth
     url = 'https://api.steampowered.com/IMobileAuthService/GetWGToken/v0001'
     try:
         r = requests.post(url, data={'access_token': urllib.parse.quote_plus(sa.secrets['Session']['OAuthToken'])})
         response = json.loads(r.text)['response']
-        token = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token']
-        token_secure = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token_secure']
-        sa.secrets['Session']['SteamLogin'] = token
-        sa.secrets['Session']['SteamLoginSecure'] = token_secure
-        with open(os.path.join(mafiles_path, manifest['entries'][0]['filename']), 'w') as maf:
-            maf.write(json.dumps(sa.secrets))
-        return 0
+        sa.secrets['Session']['SteamLogin'] = str(sa.secrets['Session']['SteamID']) + "%7C%7C" + response['token']
+        sa.secrets['Session']['SteamLoginSecure'] = str(sa.secrets['Session']['SteamID']) + "%7C%7C" +\
+            response['token_secure']
+        return True
     except requests.exceptions.ConnectionError:
-        return 1
-    except json.JSONDecodeError:
-        return 2
-    except KeyError:
-        return 2
+        error_popup('Failed to refresh session (connection error).', 'Warning')
+        return False
+    except (json.JSONDecodeError, KeyError):
+        error_popup('Steam session expired. You will be prompted to sign back in.')
+        if full_refresh(sa):
+            return refresh_session(sa)
+        else:
+            return False
 
 
-def full_refresh(sa, main_window):
-    mwa = get_mobilewebauth(sa, main_window, True)
+def full_refresh(sa):
+    mwa = get_mobilewebauth(sa, True)
     if not mwa:
         return False
-    try:
-        sa.secrets['Session']
-    except KeyError:
+    if 'Session' not in sa.secrets:
         sa.secrets['Session'] = {'SteamID': mwa.steam_id}
     sa.secrets['Session']['OAuthToken'] = mwa.oauth_token
     sa.secrets['Session']['SessionID'] = mwa.session_id
     return True
 
 
-# noinspection PyArgumentList
-def get_mobilewebauth(sa, main_window, force_login=False):
+def get_mobilewebauth(sa=None, force_login=True):
+    if sa and isinstance(sa.backend, webauth.MobileWebAuth) and sa.backend.logged_on:
+        return sa.backend
     endfunc = Empty()
     endfunc.endfunc = False
     login_dialog = QtWidgets.QDialog()
     login_ui = PyUIs.LogInDialog.Ui_Dialog()
     login_ui.setupUi(login_dialog)
     login_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-    login_ui.lineEdit.setDisabled(force_login)
+    login_ui.usernameBox.setDisabled((force_login and (sa is not None)))
     if sa:
-        login_ui.lineEdit.setText(sa.secrets['account_name'])
+        login_ui.usernameBox.setText(sa.secrets['account_name'])
+    # noinspection PyUnusedLocal
+    required = None
     while True:
-        # noinspection PyUnusedLocal
-        required = None
         login_dialog.exec_()
         if endfunc.endfunc:
             return
-        user = webauth.MobileWebAuth(username=login_ui.lineEdit.text(), password=login_ui.lineEdit_2.text())
-        username = login_ui.lineEdit.text()
+        user = webauth.MobileWebAuth(username=login_ui.usernameBox.text(), password=login_ui.passwordBox.text())
+        username = login_ui.usernameBox.text()
         try:
             user.login()
         except webauth.HTTPError:
-            main_window.error_popup_event.emit('Connection Error', '')
+            error_popup('Connection Error')
             return
         except KeyError:
-            login_ui.label_3.setText('Username and password required.')
+            login_ui.msgBox.setText('Username and password required.')
         except webauth.LoginIncorrect as e:
             if 'is incorrect' in str(e):
-                login_ui.label_3.setText('Incorrect username and/or password.')
+                login_ui.msgBox.setText('Incorrect username and/or password.')
             else:
-                login_ui.label_3.setText('Incorrect username and/or password,\n or too many attempts.')
+                login_ui.msgBox.setText('Incorrect username and/or password,\n or too many attempts.')
         except webauth.CaptchaRequired:
             required = 'captcha'
             break
@@ -141,19 +142,19 @@ def get_mobilewebauth(sa, main_window, force_login=False):
             code_ui.setupUi(code_dialog)
             code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
             code_dialog.setWindowTitle('Email code')
-            code_ui.label.setText('Enter the email code you have received:')
+            code_ui.actionBox.setText('Enter the email code you have received:')
             while True:
                 code_dialog.exec_()
                 if endfunc.endfunc:
                     return
-                email_code = code_ui.lineEdit.text()
+                email_code = code_ui.codeBox.text()
                 try:
                     user.login(email_code=email_code, captcha=captcha)
                     break
                 except webauth.EmailCodeRequired:
-                    code_ui.label_2.setText('Invalid code')
+                    code_ui.msgBox.setText('Invalid code')
                 except webauth.LoginIncorrect as e:
-                    code_ui.label_2.setText(str(e))
+                    code_ui.msgBox.setText(str(e))
                 except webauth.CaptchaRequired:
                     required = 'captcha'
                     break
@@ -163,7 +164,7 @@ def get_mobilewebauth(sa, main_window, force_login=False):
             code_ui.setupUi(code_dialog)
             code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
             code_dialog.setWindowTitle('2FA code')
-            code_ui.label.setText('Enter a two-factor code for Steam:')
+            code_ui.actionBox.setText('Enter a two-factor code for Steam:')
             while True:
                 if sa and username == sa.secrets['account_name']:
                     twofactor_code = sa.get_code()
@@ -171,17 +172,19 @@ def get_mobilewebauth(sa, main_window, force_login=False):
                     code_dialog.exec_()
                     if endfunc.endfunc:
                         return
-                    twofactor_code = code_ui.lineEdit.text()
+                    twofactor_code = code_ui.codeBox.text()
                 try:
                     user.login(twofactor_code=twofactor_code, captcha=captcha)
                     break
                 except webauth.TwoFactorCodeRequired:
-                    code_ui.label_2.setText('Invalid Code')
+                    code_ui.msgBox.setText('Invalid Code')
                 except webauth.LoginIncorrect as e:
-                    code_ui.label_2.setText(str(e))
+                    code_ui.msgBox.setText(str(e))
                 except webauth.CaptchaRequired:
                     required = 'captcha'
                     break
-        if user.complete:
+        if user.logged_on:
             break
+    if sa:
+        sa.backend = user
     return user

@@ -21,9 +21,9 @@ FORMS += \
     CaptchaDialog.ui \
     ErrorDialog.ui \
     ConfirmationDialog.ui \
-    BackupCodesDialog.ui \
     BackupCodesDeleteDialog.ui \
-    AccountChoserDialog.ui
+    AccountChoserDialog.ui \
+    BackupCodesCreatedDialog.ui
 
 DISTFILES +=
 

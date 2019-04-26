@@ -29,12 +29,12 @@
     <set>QDialogButtonBox::Close</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label">
+  <widget class="QLabel" name="header">
    <property name="geometry">
     <rect>
      <x>20</x>
      <y>20</y>
-     <width>81</width>
+     <width>421</width>
      <height>21</height>
     </rect>
    </property>
@@ -47,7 +47,7 @@
     <string>Error:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
+  <widget class="QLabel" name="errorBox">
    <property name="geometry">
     <rect>
      <x>20</x>
