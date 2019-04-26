@@ -39,7 +39,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Are you sure you want to delete you backup codes?</string>
+    <string>Are you sure you want to delete your backup codes?</string>
    </property>
   </widget>
  </widget>

@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>469</width>
+    <width>519</width>
     <height>190</height>
    </rect>
   </property>
@@ -31,7 +31,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>350</x>
+     <x>390</x>
      <y>150</y>
      <width>80</width>
      <height>31</height>
@@ -46,7 +46,7 @@
     <rect>
      <x>30</x>
      <y>20</y>
-     <width>411</width>
+     <width>461</width>
      <height>121</height>
     </rect>
    </property>
@@ -62,9 +62,6 @@
    <property name="indentation">
     <number>0</number>
    </property>
-   <property name="uniformRowHeights">
-    <bool>false</bool>
-   </property>
    <property name="itemsExpandable">
     <bool>false</bool>
    </property>
@@ -72,11 +69,16 @@
     <bool>false</bool>
    </property>
    <attribute name="headerDefaultSectionSize">
-    <number>175</number>
+    <number>135</number>
    </attribute>
    <attribute name="headerMinimumSectionSize">
-    <number>175</number>
+    <number>100</number>
    </attribute>
+   <column>
+    <property name="text">
+     <string>Account Name</string>
+    </property>
+   </column>
    <column>
     <property name="text">
      <string>SteamID</string>

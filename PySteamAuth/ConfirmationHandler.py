@@ -19,9 +19,12 @@ import re
 import json
 try:
     from . import AccountHandler
+    from .PySteamAuth import error_popup
 except ImportError:
     # noinspection PyUnresolvedReferences
     import AccountHandler
+    # noinspection PyUnresolvedReferences
+    from PySteamAuth import error_popup
 
 
 class Empty:
@@ -33,11 +36,11 @@ class Confirmation(object):
                  conf_description, conf_sub_description, conf_time, conf_icon_url):
         self.id = conf_id
         self.key = conf_key
-        self.type = conf_type
+        self.type = int(conf_type)
         type_switch = {
-            '1': 'Generic',
-            '2': 'Trade',
-            '3': 'Market Listing'
+            1: 'Generic',
+            2: 'Trade',
+            3: 'Market Listing'
         }
         self.type_str = type_switch.get(self.type, 'Unknown')
         self.creator = conf_creator
@@ -46,11 +49,11 @@ class Confirmation(object):
         self.time = conf_time
         self.icon_url = conf_icon_url
 
-    def accept(self, sa, main_window):
-            return confirm(sa, [self], 'allow', main_window)
+    def accept(self, sa):
+        return confirm(sa, [self], 'allow')
 
-    def deny(self, sa, main_window):
-            return confirm(sa, [self], 'cancel', main_window)
+    def deny(self, sa):
+        return confirm(sa, [self], 'cancel')
 
 
 def generate_query(tag, sa):
@@ -61,24 +64,27 @@ def generate_query(tag, sa):
 
 def generate_cookiejar(sa):
     jar = requests.cookies.RequestsCookieJar()
-    jar.set('mobileClientVersion', '0 (2.1.3)', path='/', domain='.steamcommunity.com')
-    jar.set('mobileClient', 'android', path='/', domain='.steamcommunity.com')
-    jar.set('steamid', str(sa.secrets['Session']['SteamID']), path='/', domain='.steamcommunity.com')
-    jar.set('steamLogin', str(sa.secrets['Session']['SteamLogin']), path='/', domain='.steamcommunity.com')
-    jar.set('steamLoginSecure', str(sa.secrets['Session']['SteamLoginSecure']), path='/', domain='.steamcommunity.com')
-    jar.set('Steam_Language', 'english', path='/', domain='.steamcommunity.com')
-    jar.set('sessionid', str(sa.secrets['Session']['SessionID']), path='/', domain='.steamcommunity.com')
+    jar.set('mobileClientVersion', '0 (2.1.3)')
+    jar.set('mobileClient', 'android')
+    jar.set('steamid', str(sa.secrets['Session']['SteamID']))
+    jar.set('steamLogin', str(sa.secrets['Session']['SteamLogin']))
+    jar.set('steamLoginSecure', str(sa.secrets['Session']['SteamLoginSecure']), secure=True)
+    jar.set('Steam_Language', 'english')
+    jar.set('sessionid', str(sa.secrets['Session']['SessionID']))
     return jar
 
 
-def fetch_confirmations(sa, main_window):
+def fetch_confirmations(sa):
     conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
     jar = generate_cookiejar(sa)
     try:
         r = requests.get(conf_url, cookies=jar)
     except requests.exceptions.ConnectionError:
-        main_window.error_popup_event.emit('Connection Error.', '')
+        error_popup('Connection Error.')
         return []
+    except requests.exceptions.InvalidSchema:
+        # TODO Finish this
+        pass
     # with open('page.html') as f:
     #     r = Empty()
     #     r.text = f.read()
@@ -108,7 +114,7 @@ def fetch_confirmations(sa, main_window):
     return ret
 
 
-def confirm(sa, confs, action, main_window):
+def confirm(sa, confs, action):
     data = 'op=' + action + '&' + generate_query(action, sa)
     if len(confs) == 0:
         return
@@ -122,7 +128,7 @@ def confirm(sa, confs, action, main_window):
             else:
                 return False
         except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-            main_window.error_popup_event.emit('Connection error.', '')
+            error_popup('Connection error.')
     else:
         url = 'https://steamcommunity.com/mobileconf/multiajaxop'
         for i in confs:
@@ -132,7 +138,8 @@ def confirm(sa, confs, action, main_window):
             if json.loads(r.text)["success"]:
                 return True
             else:
-                print(url, data, r.text)
+                print('Known bug (#2) triggered:', url, data, r.text)
                 return False
         except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-            main_window.error_popup_event.emit('Connection error.', '')
+            error_popup('Connection error.')
+            return False

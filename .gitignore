@@ -2,3 +2,4 @@ PySteamAuth/maFiles/
 PySteamAuth/PyUIs/*
 bin/
 build/
+*.pro.user
