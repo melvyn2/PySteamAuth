@@ -13,18 +13,21 @@
 
 import requests
 import requests.cookies
-import urllib.parse
+from urllib.parse import quote_plus
 import binascii
 import re
 import json
 try:
     from . import AccountHandler
-    from .PySteamAuth import error_popup
 except ImportError:
     # noinspection PyUnresolvedReferences
     import AccountHandler
+
+try:
+    from .Common import error_popup
+except ImportError:
     # noinspection PyUnresolvedReferences
-    from PySteamAuth import error_popup
+    from Common import error_popup
 
 
 class Empty:
@@ -50,16 +53,16 @@ class Confirmation(object):
         self.icon_url = conf_icon_url
 
     def accept(self, sa):
-        return confirm(sa, [self], 'allow')
+        return confirm(sa, self, 'allow')
 
     def deny(self, sa):
-        return confirm(sa, [self], 'cancel')
+        return confirm(sa, self, 'cancel')
 
 
 def generate_query(tag, sa):
-    return 'p={0}&a={1}&k={2}&t={3}&m=android&tag={4}'\
-        .format(sa.secrets['device_id'], sa.secrets['Session']['SteamID'],
-                urllib.parse.quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), sa.get_time(), tag)
+    return {'op': tag, 'p': sa.secrets['device_id'], 'a': sa.secrets['Session']['SteamID'],
+            'k': quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), 't': sa.get_time(), 'm': 'android',
+            'tag': tag}
 
 
 def generate_cookiejar(sa):
@@ -75,10 +78,11 @@ def generate_cookiejar(sa):
 
 
 def fetch_confirmations(sa):
-    conf_url = 'https://steamcommunity.com/mobileconf/conf?' + generate_query('conf', sa)
+    conf_url = 'https://steamcommunity.com/mobileconf/conf'
+    data = generate_query('conf', sa)
     jar = generate_cookiejar(sa)
     try:
-        r = requests.get(conf_url, cookies=jar)
+        r = requests.get(conf_url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
     except requests.exceptions.ConnectionError:
         error_popup('Connection Error.')
         return []
@@ -114,32 +118,34 @@ def fetch_confirmations(sa):
     return ret
 
 
-def confirm(sa, confs, action):
-    data = 'op=' + action + '&' + generate_query(action, sa)
-    if len(confs) == 0:
-        return
+def confirm(sa, conf, action):
+    url = 'https://steamcommunity.com/mobileconf/ajaxop'
+    data = generate_query(action, sa)
+    data.update({'cid': conf.id, 'ck': conf.key})
     jar = generate_cookiejar(sa)
-    if len(confs) == 1:
-        url = 'https://steamcommunity.com/mobileconf/ajaxop?'
-        data += '&cid=' + confs[0].id + '&ck=' + confs[0].key
-        try:
-            if json.loads(requests.get(url + data, cookies=jar).text)["success"]:
-                return True
-            else:
-                return False
-        except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-            error_popup('Connection error.')
+    try:
+        r = requests.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
+    except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
+        error_popup('Connection error.')
+        return False
+    if json.loads(r.text)["success"]:
+        return True
     else:
-        url = 'https://steamcommunity.com/mobileconf/multiajaxop'
-        for i in confs:
-            data += '&cid[]=' + i.id + '&ck[]=' + i.key
-        try:
-            r = requests.post(url, data=data, cookies=jar)
-            if json.loads(r.text)["success"]:
-                return True
-            else:
-                print('Known bug (#2) triggered:', url, data, r.text)
-                return False
-        except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-            error_popup('Connection error.')
-            return False
+        return False
+
+
+def confirm_multi(sa, confs, action):
+    url = 'https://steamcommunity.com/mobileconf/multiajaxop'
+    data = generate_query(action, sa)
+    for i in confs:
+        data.update({'cid[]': i.id, 'ck[]': i.key})
+    jar = generate_cookiejar(sa)
+    try:
+        r = requests.post(url, data=data, cookies=jar)
+    except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
+        error_popup('Connection error.')
+        return False
+    if json.loads(r.text)["success"]:
+        return True
+    else:
+        return False

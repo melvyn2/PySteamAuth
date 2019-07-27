@@ -34,8 +34,12 @@ def clean():
     delete(os.path.join('build', sys.platform))
     delete(os.path.join('bin', sys.platform))
 
-    for f in glob.iglob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '*.pyc'), recursive=True):
+    for f in glob.iglob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '**', '*.pyc'), recursive=True):
         delete(f)
+    for root, dirnames, filenames in os.walk('.'):
+        for dirname in dirnames:
+            if dirname == '__pycache__':
+                delete(os.path.join(root, dirname))
 
 
 def delete(obj):

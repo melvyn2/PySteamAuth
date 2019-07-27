@@ -21,7 +21,8 @@ import os
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],
-             pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')])
+             pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')],
+             hiddenimports=['PyQt5.sip', 'PyUIs', 'PySteamAuth'])
 
 # noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data)

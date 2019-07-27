@@ -21,7 +21,8 @@ import sys
 
 # noinspection PyUnresolvedReferences
 a = Analysis([os.path.join('PySteamAuth', 'PySteamAuth.py')],
-            pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')], hiddenimports=['PyQt5.sip'])
+             pathex=['PySteamAuth', os.path.join('PySteamAuth', 'PyUIs')],
+             hiddenimports=['PyQt5.sip', 'PyUIs', 'PySteamAuth'])
 
 # noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data)
@@ -44,5 +45,6 @@ coll = COLLECT(exe,
                upx=True,
                name='PySteamAuth' + ('.exe' if sys.platform == 'win32' else ''))
 
-# noinspection PyUnresolvedReferences
-app = BUNDLE(coll, name='PySteamAuth.app', icon=None)
+if sys.platform == 'darwin':
+    # noinspection PyUnresolvedReferences
+    app = BUNDLE(coll, name='PySteamAuth.app', icon=None)

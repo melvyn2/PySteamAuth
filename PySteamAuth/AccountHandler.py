@@ -20,13 +20,12 @@ from steam import webauth
 from PyQt5 import QtWidgets, QtGui
 import json
 try:
-    from . import PyUIs
-    from .PySteamAuth import error_popup
+    from . import PyUIs, Common
 except ImportError:
     # noinspection PyUnresolvedReferences
     import PyUIs
     # noinspection PyUnresolvedReferences
-    from PySteamAuth import error_popup
+    import Common
 
 
 class Empty:
@@ -44,10 +43,10 @@ def refresh_session(sa):  # TODO only run this when steammobile://lostauth
             response['token_secure']
         return True
     except requests.exceptions.ConnectionError:
-        error_popup('Failed to refresh session (connection error).', 'Warning')
+        Common.error_popup('Failed to refresh session (connection error).', 'Warning')
         return False
     except (json.JSONDecodeError, KeyError):
-        error_popup('Steam session expired. You will be prompted to sign back in.')
+        Common.error_popup('Steam session expired. You will be prompted to sign back in.')
         if full_refresh(sa):
             return refresh_session(sa)
         else:
@@ -88,7 +87,7 @@ def get_mobilewebauth(sa=None, force_login=True):
         try:
             user.login()
         except webauth.HTTPError:
-            error_popup('Connection Error')
+            Common.error_popup('Connection Error')
             return
         except KeyError:
             login_ui.msgBox.setText('Username and password required.')
