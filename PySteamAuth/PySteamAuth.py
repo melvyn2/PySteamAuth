@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 
 #    Copyright (c) 2018 melvyn2
 #
@@ -17,6 +17,7 @@
 
 
 import json
+import signal
 import sys
 import shutil
 import os
@@ -25,7 +26,7 @@ import requests
 from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
 try:
-    from . import PyUIs, ConfirmationHandler, AccountHandler
+    from . import PyUIs, ConfirmationHandler, AccountHandler, Common
 except ImportError:
     # noinspection PyUnresolvedReferences
     import PyUIs
@@ -33,10 +34,12 @@ except ImportError:
     import ConfirmationHandler
     # noinspection PyUnresolvedReferences
     import AccountHandler
+    # noinspection PyUnresolvedReferences
+    import Common
 
 
 if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
-    raise SystemExit('ERROR: Requires python ≥ 3.6')
+    raise SystemExit('ERROR: Requires python >= 3.6')
 
 
 class Empty(object):
@@ -76,19 +79,6 @@ def save_mafiles(sa=None):
             json.dump(sa.secrets, mafile)
 
 
-def error_popup(message, header=None):
-    error_dialog = QtWidgets.QDialog()
-    error_ui = PyUIs.ErrorDialog.Ui_Dialog()
-    error_ui.setupUi(error_dialog)
-    if header:
-        error_ui.header.setText(str(header))
-        error_dialog.setWindowTitle(str(header))
-    error_ui.errorBox.setText(str(message))
-    error_dialog.exec_()
-    error_dialog.close()
-    error_dialog.deleteLater()
-
-
 def refresh_session_handler():
     pass
 
@@ -113,7 +103,7 @@ def backup_codes_popup(sa):
         codes = sa.create_emergency_codes(code_ui.codeBox.text())
         codes = '\n'.join(codes)
     except guard.SteamAuthenticatorError as e:
-        error_popup(str(e))
+        Common.error_popup(str(e))
         return
     if len(codes) > 0:
         bcodes_dialog = QtWidgets.QDialog()
@@ -123,7 +113,7 @@ def backup_codes_popup(sa):
         bcodes_ui.codeBox.setText(codes)
         bcodes_dialog.exec_()
     else:
-        error_popup('No codes were generated or invalid code', 'Warning:')
+        Common.error_popup('No codes were generated or invalid code', 'Warning:')
 
 
 def backup_codes_delete(sa):
@@ -144,33 +134,39 @@ def backup_codes_delete(sa):
     try:
         sa.destroy_emergency_codes()
     except guard.SteamAuthenticatorError as e:
-        error_popup(str(e))
+        Common.error_popup(str(e))
 
 
 def test_mafiles(path, entry=False):
-    with open(os.path.join(path, 'manifest.json')) as manifest_file:
-        test_manifest = json.load(manifest_file)
-        if entry:
+    try:
+        manifest_file = open(os.path.join(path, 'manifest.json'))
+    except IOError:
+        return False
+    test_manifest = json.load(manifest_file)
+    if entry:
+        try:
+            with open(os.path.join(path, test_manifest['entries'][entry]['filename'])) as maf_file:
+                maf = json.loads(maf_file.read())
+            sa = guard.SteamAuthenticator(secrets=maf)
+            sa.get_code()
+        except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
+            manifest_file.close()
+            return False
+        manifest_file.close()
+        return True
+    else:
+        valid_entries = []
+        for i in test_manifest['entries']:
             try:
-                with open(os.path.join(path, test_manifest['entries'][entry]['filename'])) as maf_file:
+                with open(os.path.join(path, i['filename'])) as maf_file:
                     maf = json.loads(maf_file.read())
                 sa = guard.SteamAuthenticator(secrets=maf)
                 sa.get_code()
+                valid_entries.append(i)
             except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
-                return False
-            return True
-        else:
-            valid_entries = []
-            for i in test_manifest['entries']:
-                try:
-                    with open(os.path.join(path, i['filename'])) as maf_file:
-                        maf = json.loads(maf_file.read())
-                    sa = guard.SteamAuthenticator(secrets=maf)
-                    sa.get_code()
-                    valid_entries.append(i)
-                except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
-                    continue
-            return valid_entries
+                continue
+        manifest_file.close()
+        return valid_entries
 
 
 def set_autoaccept(timer, sa, trades, markets):
@@ -193,7 +189,7 @@ def accept_all(sa, trades=True, markets=True, others=True):
             del confs[i]
     if len(confs) == 0:
         return True
-    return ConfirmationHandler.confirm(sa, confs, 'allow')
+    return ConfirmationHandler.confirm_multi(sa, confs, 'allow')
 
 
 def open_conf_dialog(sa):
@@ -203,7 +199,7 @@ def open_conf_dialog(sa):
     info.index = 0
     info.confs = ConfirmationHandler.fetch_confirmations(sa)
     if len(info.confs) == 0:
-        error_popup('Nothing to confirm.', '  ')
+        Common.error_popup('Nothing to confirm.', '  ')
         main_ui.confListButton.setText('Confirmations')
         return
     conf_dialog = QtWidgets.QDialog()
@@ -216,7 +212,7 @@ def open_conf_dialog(sa):
             conf_dialog.hide()
             conf_dialog.close()
             conf_dialog.deleteLater()
-            error_popup('Nothing to confirm.', '  ')
+            Common.error_popup('Nothing to confirm.', '  ')
             main_ui.confListButton.setText('Confirmations')
             return
         while True:
@@ -239,15 +235,15 @@ def open_conf_dialog(sa):
 
     def accept():
         AccountHandler.refresh_session(sa)
-        if not info.confs[info.index].accept(sa, main_window):
-            error_popup('Failed to accept confirmation.')
+        if not info.confs[info.index].accept(sa):
+            Common.error_popup('Failed to accept confirmation.')
         info.confs = ConfirmationHandler.fetch_confirmations(sa)
         load_info()
 
     def deny():
         AccountHandler.refresh_session(sa)
-        if not info.confs[info.index].deny(sa, main_window):
-            error_popup('Failed to accept confirmation.')
+        if not info.confs[info.index].deny(sa):
+            Common.error_popup('Failed to accept confirmation.')
         info.confs = ConfirmationHandler.fetch_confirmations(sa)
         load_info()
 
@@ -294,10 +290,10 @@ def add_authenticator():
             if endfunc.endfunc:
                 return
             if not sa.confirm_phone_number(code_ui.codeBox.text()):
-                error_popup('Failed to confirm phone number')
+                Common.error_popup('Failed to confirm phone number')
                 return
         else:
-            error_popup('Failed to add phone number.')
+            Common.error_popup('Failed to add phone number.')
             return
     try:
         sa.add()
@@ -319,15 +315,15 @@ def add_authenticator():
                 sa.remove()
                 sa.add()
             except guard.SteamAuthenticatorError as e:
-                error_popup(str(e))
+                Common.error_popup(str(e))
                 return
         else:
-            error_popup(e)
+            Common.error_popup(e)
             return
     if os.path.isdir(mafiles_folder_path):
         if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                 in os.listdir(mafiles_folder_path):
-            error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
+            Common.error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
             return
         else:
             shutil.rmtree(mafiles_folder_path)
@@ -340,7 +336,7 @@ def add_authenticator():
             'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
             'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
                         'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
-    error_popup('This is your revocation code. Write it down physically and keep it. You will need it in case you lose'
+    Common.error_popup('This is your revocation code. Write it down physically and keep it. You will need it in case you lose'
                 ' your authenticator.', sa.secrets['revocation_code'])
     code_dialog = QtWidgets.QDialog()
     code_ui = PyUIs.PhoneDialog.Ui_Dialog()
@@ -385,7 +381,7 @@ def remove_authenticator(sa):
     try:
         sa.remove()
     except guard.SteamAuthenticatorError as e:
-        error_popup(str(e))
+        Common.error_popup(str(e))
         return
     os.remove(os.path.join(mafiles_folder_path, mafile_name))
     del manifest['entries'][manifest_entry_index]
@@ -400,12 +396,12 @@ def copy_mafiles():
         if f == '':
             break
         if not test_mafiles(f):
-            error_popup('The selected folder does not contain valid maFiles.')
+            Common.error_popup('The selected folder does not contain valid maFiles.')
             continue
         if os.path.isdir(mafiles_folder_path):
             if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                     in os.listdir(mafiles_folder_path):
-                error_popup('The maFiles folder at {} is not empty.\nPlease remove it.'.format(mafiles_folder_path))
+                Common.error_popup('The maFiles folder at {} is not empty.\nPlease remove it.'.format(mafiles_folder_path))
                 continue
             else:
                 shutil.rmtree(mafiles_folder_path)
@@ -414,20 +410,22 @@ def copy_mafiles():
 
 
 # inspection PyUnresolvedReferences
-def main():  # TODO debug menubar actions
+def main(argv):  # TODO debug menubar actions
     global mafiles_folder_path, mafile_name, manifest_entry_index, app, manifest, main_window, main_ui
     base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
         else os.path.dirname(os.path.abspath(__file__))
     if test_mafiles(os.path.join(base_path, 'maFiles')):
         mafiles_folder_path = os.path.join(base_path, 'maFiles')
-    elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in sys.argv:
+    elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in argv:
         mafiles_folder_path = os.path.expanduser(os.path.join('~', '.maFiles'))
     else:
         mafiles_folder_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) ==\
                                       'PySteamAuth' else os.path.expanduser(os.path.join('~', '.maFiles'))
     # TODO Generally fix the above
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication(argv)
+    signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
+    signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
     while True:
         try:
             with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
@@ -473,7 +471,7 @@ def main():  # TODO debug menubar actions
             if os.path.isdir(mafiles_folder_path):
                 if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                         in os.listdir(mafiles_folder_path):
-                    error_popup('Failed to load maFile: ' + str(e))
+                    Common.error_popup('Failed to load maFile: ' + str(e))
             setup_dialog = QtWidgets.QDialog()
             setup_ui = PyUIs.SetupDialog.Ui_Dialog()
             setup_ui.setupUi(setup_dialog)
@@ -519,10 +517,17 @@ def main():  # TODO debug menubar actions
 
     main_window.show()
     main_window.raise_()
+
+    if '--test' in argv:
+        QtCore.QTimer.singleShot(3, app.quit)
+
     app.exec_()
 
     save_mafiles(sa)
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        main(sys.argv)
+    except KeyboardInterrupt:
+        sys.exit()

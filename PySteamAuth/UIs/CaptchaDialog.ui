@@ -61,11 +61,8 @@
      <height>221</height>
     </rect>
    </property>
-   <property name="pixmap">
-    <pixmap resource="Images.qrc">:/icons/placeholder.png</pixmap>
-   </property>
-   <property name="scaledContents">
-    <bool>true</bool>
+   <property name="Comment" stdset="0">
+    <string>Placeholder disabled due to import errors</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_3">
@@ -85,9 +82,7 @@
    </property>
   </widget>
  </widget>
- <resources>
-  <include location="Images.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>

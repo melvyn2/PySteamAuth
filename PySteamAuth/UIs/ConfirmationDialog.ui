@@ -142,14 +142,14 @@
    <property name="text">
     <string/>
    </property>
-   <property name="pixmap">
-    <pixmap resource="Images.qrc">:/icons/placeholder.png</pixmap>
-   </property>
    <property name="scaledContents">
     <bool>true</bool>
    </property>
    <property name="wordWrap">
     <bool>true</bool>
+   </property>
+   <property name="Comment" stdset="0">
+    <string>Placeholder disabled due to import errors</string>
    </property>
   </widget>
   <widget class="QLabel" name="infoLabel">
@@ -171,9 +171,7 @@ Type: [Type]</string>
    </property>
   </widget>
  </widget>
- <resources>
-  <include location="Images.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
