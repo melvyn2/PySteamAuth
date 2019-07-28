@@ -336,8 +336,8 @@ def add_authenticator():
             'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
             'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
                         'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
-    Common.error_popup('This is your revocation code. Write it down physically and keep it. You will need it in case you lose'
-                ' your authenticator.', sa.secrets['revocation_code'])
+    Common.error_popup('This is your revocation code. Write it down physically and keep it. You will need it in case'
+                ' you lose your authenticator.', sa.secrets['revocation_code'])
     code_dialog = QtWidgets.QDialog()
     code_ui = PyUIs.PhoneDialog.Ui_Dialog()
     code_ui.setupUi(code_dialog)

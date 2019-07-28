@@ -11,11 +11,12 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
+from typing import List
 import requests
 import requests.cookies
 from urllib.parse import quote_plus
 import binascii
-import re
+import lxml.html
 import json
 try:
     from . import AccountHandler
@@ -43,7 +44,8 @@ class Confirmation(object):
         type_switch = {
             1: 'Generic',
             2: 'Trade',
-            3: 'Market Listing'
+            3: 'Market Listing',
+            5: 'Steam Details Change'
         }
         self.type_str = type_switch.get(self.type, 'Unknown')
         self.creator = conf_creator
@@ -86,35 +88,35 @@ def fetch_confirmations(sa):
     except requests.exceptions.ConnectionError:
         error_popup('Connection Error.')
         return []
-    except requests.exceptions.InvalidSchema:
-        # TODO Finish this
-        pass
+    # except requests.exceptions.InvalidSchema:
+    #     TODO Finish this
+    #     pass
+
+    # Used for testing purposes
     # with open('page.html') as f:
     #     r = Empty()
     #     r.text = f.read()
-    page = ''.join(r.text.replace('\t', '').splitlines())
-    conf_full_regex = '<div class="mobileconf_list_entry"((.|\n)*?)' + \
-                      '<div class="mobileconf_list_entry_sep"></div>'
-    if '<div>Nothing to confirm</div>' in page:
+
+    if '<div>Nothing to confirm</div>' in r.text:
         return []
     ret = []
-    for i in [x[0] for x in re.findall(conf_full_regex, page)]:
+    # Due to the complexity of lxml, variable annotation was needed to assist pycharm
+    doc: lxml.html.HtmlElement = lxml.html.fromstring(r.text)
+    # noinspection PyUnusedLocal
+    e: lxml.html.HtmlElement
+    for e in doc.find_class('mobileconf_list_entry'):
+        confid = e.get('data-confid')
+        key = e.get('data-key')
+        conftype = e.get('data-type')
+        creator = e.get('data-creator')
         try:
-            icon_url = re.findall('<img src="(.*?)"', i)[0].replace('.jpg', '_medium.jpg')
+            icon_url = e.find_class('playerAvatar')[0].find('img').get('src').replace('.jpg', '_full.jpg')
         except IndexError:
             icon_url = False
-        baseinfo = re.findall('id="conf[0-9]+" data-confid="(\\d+)" ' +
-                              'data-key="(\\d+)" data-type="(\\d+)" data-creator="(\\d+)"', i)[0]
-        moreinfo = re.findall('<div class="mobileconf_list_entry_description"><div>(.*?)</div>' +
-                              '<div>(.*?)</div><div>(.*?)</div>', i)[0]
-        ret.append(Confirmation(baseinfo[0],
-                                baseinfo[1],
-                                baseinfo[2],
-                                baseinfo[3],
-                                re.sub('<[^>]+>', '', moreinfo[0]),
-                                moreinfo[1],
-                                moreinfo[2],
-                                icon_url))
+        # desc_block[0] is the confirmation title, [1] is the sub-description, and [2] is the time of the confirmation
+        desc_block: List[lxml.html.HtmlElement] = e.find_class('mobileconf_list_entry_description')[0].findall('div')
+        ret.append(Confirmation(confid, key, conftype, creator, desc_block[0].text_content(),
+                                desc_block[1].text_content(), desc_block[2].text_content(), icon_url))
     return ret
 
 
