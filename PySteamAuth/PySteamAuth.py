@@ -25,17 +25,11 @@ import subprocess
 import requests
 from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
-try:
-    from . import PyUIs, ConfirmationHandler, AccountHandler, Common
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import PyUIs
-    # noinspection PyUnresolvedReferences
-    import ConfirmationHandler
-    # noinspection PyUnresolvedReferences
-    import AccountHandler
-    # noinspection PyUnresolvedReferences
-    import Common
+
+import PyUIs
+import ConfirmationHandler
+import AccountHandler
+import Common
 
 
 if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
@@ -426,6 +420,8 @@ def main(argv):  # TODO debug menubar actions
     app = QtWidgets.QApplication(argv)
     signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
     signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
+    if '--test' in argv:
+        QtCore.QTimer.singleShot(3, app.quit)
     while True:
         try:
             with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
@@ -478,6 +474,8 @@ def main(argv):  # TODO debug menubar actions
             setup_ui.setupButton.clicked.connect(lambda: (setup_dialog.accept(), add_authenticator()))
             setup_ui.importButton.clicked.connect(lambda: (copy_mafiles(), setup_dialog.accept()))
             setup_ui.quitButton.clicked.connect(sys.exit)
+            if '--test' in argv:
+                QtCore.QTimer.singleShot(10, sys.exit)
             setup_dialog.exec_()
     sa = guard.SteamAuthenticator(maf)
     main_window = QtWidgets.QMainWindow()

@@ -19,13 +19,9 @@ import urllib.parse
 from steam import webauth
 from PyQt5 import QtWidgets, QtGui
 import json
-try:
-    from . import PyUIs, Common
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import PyUIs
-    # noinspection PyUnresolvedReferences
-    import Common
+
+import PyUIs
+import Common
 
 
 class Empty:
