@@ -14,8 +14,7 @@
 from typing import List
 import requests
 import requests.cookies
-from urllib.parse import quote_plus
-import binascii
+import base64
 import lxml.html
 import json
 
@@ -54,8 +53,8 @@ class Confirmation(object):
 
 def generate_query(tag, sa):
     return {'op': tag, 'p': sa.secrets['device_id'], 'a': sa.secrets['Session']['SteamID'],
-            'k': quote_plus(binascii.b2a_base64(sa.get_confirmation_key(tag))), 't': sa.get_time(), 'm': 'android',
-            'tag': tag}
+            'k': base64.b64encode(sa.get_confirmation_key(tag)).decode('utf-8'), 't': sa.get_time(),
+            'm': 'android', 'tag': tag}
 
 
 def generate_cookiejar(sa):
@@ -141,4 +140,5 @@ def confirm_multi(sa, confs, action):
     if json.loads(r.text)["success"]:
         return True
     else:
+        error_popup('Confirmation error.')
         return False
