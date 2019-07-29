@@ -14,11 +14,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5 import QtWidgets
-try:
-    from . import PyUIs
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import PyUIs
+
+import PyUIs
 
 
 def error_popup(message, header=None):

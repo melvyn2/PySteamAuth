@@ -18,17 +18,8 @@ from urllib.parse import quote_plus
 import binascii
 import lxml.html
 import json
-try:
-    from . import AccountHandler
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import AccountHandler
 
-try:
-    from .Common import error_popup
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    from Common import error_popup
+from Common import error_popup
 
 
 class Empty:

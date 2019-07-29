@@ -8,16 +8,19 @@ ALWAYS KEEP COPIES OF YOUR AUTHENTICATOR FILES AND REVOCATION CODE!
 
 This program is still in development and is very unstable. Use at your own risk.
 
-[Downloads](https://github.com/melvyn2/PySteamAuth/releases)
- ---------
+Pre-built Downloads
+-------------------
+ Downloads are not availible yet as CI/CD is still not set up and manual
+  builds aren't fun. You can still build it yourself.
 
 Requirements
 ------------
 * [Python 3](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
-* [Steam (Python Library)](https://github.com/ValvePython/steam)
-* [PyInstaller (develop branch)](https://github.com/pyinstaller/pyinstaller/tree/develop) `pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip`
+* [Steam](https://github.com/ValvePython/steam) (PyPI package is outdated, install from repo)
+* [lxml](https://github.com/lxml/lxml)
+* [PyInstaller](https://github.com/pyinstaller/pyinstaller/)
 
 
 Running Directly
@@ -45,18 +48,17 @@ Then, build it:
 
 `$ ./make.py build`
 
-By default, the script is packaged into a single file for linux:
+The executable will be packaged into a folder (or an app bundle on 
+macOS) with other files required for PSA to run. If you require 
+portability, using
 
-`$ bin/linux2/PySteamAuth`
+`$ ./make.py build --compact`
 
-and into a folder for other OSes, with `.exe` added at the end for Windows:
+will package everything into a single executable, which is also smaller,
+but has a longer startup time.
 
-`$ bin/[YOUR OS]/PySteamAuth/PySteamAuth`.
-
-You can change this behavior by passing `--force-onefile` or `--force-onedir` to `make.py`.
-Packaging into a single file sometimes causes issues, so only use `--force-onefile` when necessary.
-When packaged into a folder, the executable cannot be separated from the folder's contents, but it launches much faster.
-
-Known Issues
+Contributing
 ------------
-* Confirm-all on multiple confirmation fails (use individual confirmation dialog until fixed) (#2)
+* Testing! Simply test this program out and report bugs/missing features.
+
+* Development: add features, fix bugs, and work on TODOs.

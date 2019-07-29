@@ -19,7 +19,6 @@
 import os
 import errno
 import glob
-import pkgutil
 import shutil
 import subprocess
 import sys
@@ -82,12 +81,10 @@ if action == 'build':  # TODO add travis & appveyor CI
     try:
         from PyInstaller.__main__ import run as freeze
         if '--compact' in sys.argv:
-            freeze(['--distpath', os.path.join('bin', sys.platform), '--workpath', os.path.join('build', sys.platform),
-                    'PySteamAuth-File.spec'])
+            freeze(['PySteamAuth-File.spec'])
         else:
-            freeze(['--distpath', os.path.join('bin', sys.platform), '--workpath', os.path.join('build', sys.platform),
-                    'PySteamAuth-Folder.spec'])
-        print('You can find your built executable(s) in the \'bin' + os.sep + sys.platform + '\' directory.')
+            freeze(['PySteamAuth-Folder.spec'])
+        print('You can find your built executable(s) in the \'dist\' directory.')
     except ImportError:
         print('PyInstaller is missing.')
         sys.exit(1)
@@ -101,20 +98,21 @@ elif action == 'install':
 
             if os.path.isdir(os.path.join(os.sep, 'Applications', 'PySteamAuth.app')):
                 if '-y' in sys.argv or (input('You already have a copy of PySteamAuth installed. '
-                                              'Would you like to remove it and continue? [Y/n] ') in ['y', '']):
+                                              'Would you like to remove it and continue? [Y/n] ').lower() in ['y', '']):
                     delete(os.path.join(os.sep, 'Applications', 'PySteamAuth.app'))
                 else:
                     print('Aborted.')
                     sys.exit()
             shutil.copytree(os.path.join('bin', sys.platform, 'PySteamAuth.app'), os.path.join(os.sep, 'Applications'))
-            print('PySteamAuth has been installed to /Applications')
+            print('PySteamAuth.app has been installed to /Applications')
+
         elif 'linux' in sys.platform:
             if not os.path.exists(os.path.join('dist', sys.platform, 'PySteamAuth')):
                 print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
                 sys.exit()
             if os.path.exists(os.path.join(os.sep, 'usr', 'local', 'bin', 'PySteamAuth')):
                 if '-y' in sys.argv or (input('You already have a copy of PySteamAuth installed. '
-                                              'Would you like to remove it and continue? [Y/n] ') in ['y', '']):
+                                              'Would you like to remove it and continue? [Y/n] ').lower() in ['y', '']):
                     delete(os.path.join(os.sep, 'usr', 'local', 'opt', 'PySteamAuth'))
                     delete(os.path.join(os.sep, 'usr', 'local', 'bin', 'PySteamAuth'))
                 else:
@@ -165,58 +163,15 @@ elif action == 'install':
 elif action == 'run':
     if '--dont-rebuild-ui' not in sys.argv:
         build_qt_files()
-    from PySteamAuth import PySteamAuth
-    PySteamAuth.main()
+    argv = list(filter('--dont-rebuild-ui'.__ne__, sys.argv[2:]))
+    os.execl(sys.executable, sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'PySteamAuth',
+                                                          'PySteamAuth.py'), *argv)
 
 elif action == 'clean':
     clean()
 
 elif action == 'deps':
-    missing = []
-    deps = ['PyInstaller', 'PyQt5', 'requests', 'steam']
-    installed_packages = [x[1] for x in list(pkgutil.iter_modules())]
-    for i in deps:
-        if i not in installed_packages:
-            missing.append(i)
-    import setuptools
-    if setuptools.__version__ < '39':
-        missing.append('setuptools')
-    if len(missing) > 0:
-        print('You are missing or need to upgrade/patch the following: ' + ', '.join(missing))
-        if '-y' in sys.argv or input('Install them or it? (y/n) ') == 'y':
-            try:
-                import pip
-                # noinspection PyUnresolvedReferences
-                pip.main(['install', '--upgrade'] + missing)
-            except AttributeError:
-                try:
-                    # noinspection PyProtectedMember
-                    import pip._internal
-                    # noinspection PyProtectedMember
-                    pip._internal.main(['install', '--upgrade'] + missing)
-                except ImportError:
-                    print('Pip is missing.')
-                    sys.exit(1)
-            except ImportError:
-                print('Pip is missing.')
-                sys.exit(1)
-        else:
-            print('Aborted.')
-            sys.exit(0)
-
-    missing = []
-    installed_packages = [x[1] for x in list(pkgutil.iter_modules())]
-    for i in deps:
-        if i not in installed_packages:
-            missing.append(i)
-    import importlib
-    importlib.reload(setuptools)
-    if setuptools.__version__ < '39':
-        missing.append('setuptools')
-
-    print(('Not all packages were successfully installed: ' + ', '.join(missing)) if missing else
-          'You have all dependencies installed!')
-
+    subprocess.call([sys.executable, '-m', 'pip', 'install', '-U', '-r', 'requirements.txt'])
 
 elif action == 'pyqt-build':
     build_qt_files()
