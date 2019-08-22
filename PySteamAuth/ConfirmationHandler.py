@@ -11,12 +11,11 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from typing import List
 import requests
 import requests.cookies
 import base64
-import lxml.html
 import json
+import re
 
 from Common import error_popup
 
@@ -90,23 +89,15 @@ def fetch_confirmations(sa):
     if '<div>Nothing to confirm</div>' in r.text:
         return []
     ret = []
-    # Due to the complexity of lxml, variable annotation was needed to assist pycharm
-    doc: lxml.html.HtmlElement = lxml.html.fromstring(r.text)
-    # noinspection PyUnusedLocal
-    e: lxml.html.HtmlElement
-    for e in doc.find_class('mobileconf_list_entry'):
-        confid = e.get('data-confid')
-        key = e.get('data-key')
-        conftype = e.get('data-type')
-        creator = e.get('data-creator')
-        try:
-            icon_url = e.find_class('playerAvatar')[0].find('img').get('src').replace('.jpg', '_full.jpg')
-        except IndexError:
-            icon_url = False
-        # desc_block[0] is the confirmation title, [1] is the sub-description, and [2] is the time of the confirmation
-        desc_block: List[lxml.html.HtmlElement] = e.find_class('mobileconf_list_entry_description')[0].findall('div')
-        ret.append(Confirmation(confid, key, conftype, creator, desc_block[0].text_content(),
-                                desc_block[1].text_content(), desc_block[2].text_content(), icon_url))
+    pattern = '<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\d+)\" data-key=\"(\d+)\" ' \
+        'data-type=\"(\d)\" data-creator=\"(\d+)\" data-cancel=\"[a-zA-Z]+\" data-accept=\"[a-zA-Z]+\" >' \
+        '[\s]*?<div class=\"mobileconf_list_entry_content\">[\s]*?<div class=\"mobileconf_list_entry_icon\">[\s]*?' \
+        '(?:<div class=\"[a-zA-Z ]+\"><img src=\"(.*?)\" srcset=\".*? 1x, .*? 2x\"></div>)?[\s]*?</div>[\s]*?' \
+        '<div class=\"mobileconf_list_entry_description\">[\s]*?<div>(.*?)</div>[\s]*?<div>(.*?)</div>[\s]*?' \
+        '<div>(.*?)</div>[\s]*?</div>[\s]*?</div>'
+    for i in re.findall(pattern, r.text):
+        ret.append(Confirmation(i[0], i[1], i[2], i[3], i[4].replace('.jpg', '_full.jpg'), re.sub('<[^<]+?>', '', i[5]),
+                                i[6], i[7]))
     return ret
 
 

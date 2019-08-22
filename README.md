@@ -19,7 +19,6 @@ Requirements
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam](https://github.com/ValvePython/steam) (PyPI package is outdated, install from repo)
-* [lxml](https://github.com/lxml/lxml)
 * [PyInstaller](https://github.com/pyinstaller/pyinstaller/)
 
 
