@@ -61,3 +61,12 @@ Contributing
 * Testing! Simply test this program out and report bugs/missing features.
 
 * Development: add features, fix bugs, and work on TODOs.
+
+Credits
+-------
+* [rossengeorgiev](https://github.com/rossengeorgiev) for steam (the 
+library)
+* [Geel](https://github.com/geel9/) for 
+[SteamAuth](https://github.com/geel9/SteamAuth/), who's code helped a 
+lot for making confirmations work
+* [Valve](https://www.valvesoftware.com/) for [Steam](https://steamcommunity.com)
