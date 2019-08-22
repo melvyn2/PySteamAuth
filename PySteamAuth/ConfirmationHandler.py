@@ -1,4 +1,3 @@
-
 #    Copyright (c) 2018 melvyn2
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -25,8 +24,8 @@ class Empty:
 
 
 class Confirmation(object):
-    def __init__(self, conf_id, conf_key, conf_type, conf_creator,
-                 conf_description, conf_sub_description, conf_time, conf_icon_url):
+    def __init__(self, conf_id, conf_key, conf_type, conf_creator, conf_icon_url, conf_description,
+                 conf_sub_description, conf_time):
         self.id = conf_id
         self.key = conf_key
         self.type = int(conf_type)
@@ -36,12 +35,12 @@ class Confirmation(object):
             3: 'Market Listing',
             5: 'Steam Details Change'
         }
+        self.icon_url = conf_icon_url
         self.type_str = type_switch.get(self.type, 'Unknown')
         self.creator = conf_creator
         self.description = conf_description
         self.sub_description = conf_sub_description
         self.time = conf_time
-        self.icon_url = conf_icon_url
 
     def accept(self, sa):
         return confirm(sa, self, 'allow')
@@ -90,11 +89,11 @@ def fetch_confirmations(sa):
         return []
     ret = []
     pattern = '<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\d+)\" data-key=\"(\d+)\" ' \
-        'data-type=\"(\d)\" data-creator=\"(\d+)\" data-cancel=\"[a-zA-Z]+\" data-accept=\"[a-zA-Z]+\" >' \
-        '[\s]*?<div class=\"mobileconf_list_entry_content\">[\s]*?<div class=\"mobileconf_list_entry_icon\">[\s]*?' \
-        '(?:<div class=\"[a-zA-Z ]+\"><img src=\"(.*?)\" srcset=\".*? 1x, .*? 2x\"></div>)?[\s]*?</div>[\s]*?' \
-        '<div class=\"mobileconf_list_entry_description\">[\s]*?<div>(.*?)</div>[\s]*?<div>(.*?)</div>[\s]*?' \
-        '<div>(.*?)</div>[\s]*?</div>[\s]*?</div>'
+              'data-type=\"(\d)\" data-creator=\"(\d+)\" data-cancel=\"[a-zA-Z]+\" data-accept=\"[a-zA-Z]+\" >' \
+              '[\s]*?<div class=\"mobileconf_list_entry_content\">[\s]*?<div class=\"mobileconf_list_entry_icon\">' \
+              '[\s]*?(?:<div class=\"[a-zA-Z ]+\"><img src=\"(.*?)\" srcset=\".*? 1x, .*? 2x\"></div>)?[\s]*?</div>' \
+              '[\s]*?<div class=\"mobileconf_list_entry_description\">[\s]*?<div>(.*?)</div>[\s]*?<div>(.*?)</div>' \
+              '[\s]*?<div>(.*?)</div>[\s]*?</div>[\s]*?</div>'
     for i in re.findall(pattern, r.text):
         ret.append(Confirmation(i[0], i[1], i[2], i[3], i[4].replace('.jpg', '_full.jpg'), re.sub('<[^<]+?>', '', i[5]),
                                 i[6], i[7]))
