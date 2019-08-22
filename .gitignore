@@ -3,3 +3,5 @@ PySteamAuth/PyUIs/*
 bin/
 build/
 *.pro.user
+cacert.pem
+page.html

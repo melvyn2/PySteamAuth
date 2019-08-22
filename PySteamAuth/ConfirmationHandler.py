@@ -16,7 +16,7 @@ import base64
 import json
 import re
 
-from Common import error_popup
+import Common
 
 
 class Empty:
@@ -68,13 +68,13 @@ def generate_cookiejar(sa):
 
 
 def fetch_confirmations(sa):
-    conf_url = 'https://steamcommunity.com/mobileconf/conf'
+    url = 'https://steamcommunity.com/mobileconf/conf'
     data = generate_query('conf', sa)
     jar = generate_cookiejar(sa)
     try:
-        r = requests.get(conf_url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
+        r = requests.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar, )
     except requests.exceptions.ConnectionError:
-        error_popup('Connection Error.')
+        Common.error_popup('Connection Error.')
         return []
     # except requests.exceptions.InvalidSchema:
     #     TODO Finish this
@@ -108,7 +108,7 @@ def confirm(sa, conf, action):
     try:
         r = requests.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
     except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-        error_popup('Connection error.')
+        Common.error_popup('Connection error.')
         return False
     if json.loads(r.text)["success"]:
         return True
@@ -125,10 +125,10 @@ def confirm_multi(sa, confs, action):
     try:
         r = requests.post(url, data=data, cookies=jar)
     except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
-        error_popup('Connection error.')
+        Common.error_popup('Connection error.')
         return False
     if json.loads(r.text)["success"]:
         return True
     else:
-        error_popup('Confirmation error.')
+        Common.error_popup('Confirmation error.')
         return False
