@@ -1,5 +1,6 @@
 <RCC>
-    <qresource>
-        <file>icons/placeholder.png</file>
+    <qresource prefix="/">
+        <file>icons/confirmation_placeholder.png</file>
+        <file>icons/captcha_placholder.png</file>
     </qresource>
 </RCC>

@@ -199,7 +199,7 @@ def open_conf_dialog(sa):
     conf_dialog = QtWidgets.QDialog()
     conf_ui = PyUIs.ConfirmationDialog.Ui_Dialog()
     conf_ui.setupUi(conf_dialog)
-    default_pixmap = QtGui.QPixmap(':/icons/placeholder.png')
+    default_pixmap = QtGui.QPixmap(':/icons/confirmation_placeholder.png')
 
     def load_info():
         if len(info.confs) == 0:
@@ -395,7 +395,8 @@ def copy_mafiles():
         if os.path.isdir(mafiles_folder_path):
             if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                     in os.listdir(mafiles_folder_path):
-                Common.error_popup('The maFiles folder at {} is not empty.\nPlease remove it.'.format(mafiles_folder_path))
+                Common.error_popup('The maFiles folder at {} is not empty.\nPlease remove it.'
+                                   .format(mafiles_folder_path))
                 continue
             else:
                 shutil.rmtree(mafiles_folder_path)
