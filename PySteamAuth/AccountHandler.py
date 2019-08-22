@@ -112,12 +112,12 @@ def get_mobilewebauth(sa=None, force_login=True):
             captcha_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
             pixmap = QtGui.QPixmap()
             pixmap.loadFromData(requests.get(user.captcha_url).text)
-            captcha_ui.label_2.setPixmap(pixmap)
+            captcha_ui.captchaLabel.setPixmap(pixmap)
             while True:
                 captcha_dialog.exec_()
                 if endfunc.endfunc:
                     return
-                captcha = captcha_ui.lineEdit.text()
+                captcha = captcha_ui.captchaInputBox.text()
                 try:
                     user.login(captcha=captcha, email_code=email_code, twofactor_code=twofactor_code)
                     break
