@@ -1,5 +1,4 @@
 PyQt5
-lxml
 requests
 pyinstaller
-https://github.com/ValvePython/steam/archive/v1.0.0-alpha4.zip
+https://github.com/ValvePython/steam/archive/fcb584f205a5e3f120cf39642676d59ccb4cfadb.zip
