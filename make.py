@@ -56,7 +56,7 @@ def build_qt_files():
     psa_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'PySteamAuth')
     pyuis_dir = os.path.join(psa_dir, 'PyUIs')
     uis_dir = os.path.join(psa_dir, 'UIs')
-    shutil.rmtree(pyuis_dir)
+    delete(pyuis_dir)
     os.mkdir(pyuis_dir)
     built_files = []
     for f in glob.iglob(os.path.join(uis_dir, '*.ui')):
