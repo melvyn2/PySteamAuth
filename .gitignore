@@ -1,7 +1,9 @@
 PySteamAuth/maFiles/
 PySteamAuth/PyUIs/*
-bin/
-build/
+build/PySteamAuth.build/
+build/PySteamAuth.dist/
+dist/
+pkg/
 *.pro.user
 cacert.pem
 page.html

@@ -1,4 +1,4 @@
 PyQt5
 requests
-pyinstaller
+https://github.com/Nuitka/Nuitka/archive/fc25e8c25a573b98abed6123e86f9b08ab729a62.zip
 https://github.com/ValvePython/steam/archive/fcb584f205a5e3f120cf39642676d59ccb4cfadb.zip
