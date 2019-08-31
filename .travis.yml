@@ -1,0 +1,51 @@
+matrix:
+  include:
+    - os: linux
+      language: python
+    - os: osx
+      language: generic
+      osx_image: xcode11
+
+branches:
+  except:
+    - /^untagged/
+
+addons:
+  apt:
+    packages:
+      - libxkbcommon-x11-0
+      - chrpath
+  homebrew:
+    packages:
+      - python3
+      - openssl
+
+install: "./make.py deps"
+
+script: "./make.py build --zip -v"
+
+after_success: "./test.sh"
+
+deploy:
+  - provider: releases
+    skip_cleanup: true
+    file_glob: true
+    file: pkg/*
+    api_key:
+      secure: GwA4hAtumUXyAuQoc53tCRehfnGCiClibZtwmWSGSV19HwToWM16Y7LgJ3I6Q0Bw5gSdjvSOaHfIRKVSS5rr9iDTiBKEUKcvD21GWSCV7kd5SEubEyPxF0cNZQPq280fj1VoN56gdatFfKeHfiqkAG6B1J7S/+MOUabQeATqdTjxdHnx/5XdU+xFP1R5/nJ9wEr0nGM3B7W56BHolBiuNGBlbScnVq/kX57B2+HylMfG55l+0RoP5Jrxg4jrQIuKiP9cjIVqB+5VN6bAYc0v+NRpixyoII6vWIlUK2kBz1U20qzzopkVVpcA8AE5fiHKyTeEcIklVA99GkYf92zIUNcovJpezYVVmARbtPl8OXF2czsdXnUje5Ec0c3wvwWc2qAmgvsMW6P+WGW9gE02hYCH4F2hCDf9SN8V48L1nREihv+oIxYIQN/c2yHX3HeVwcbOeIo93dgpZOOR5f7GWT2l/OtBmYr5TbKlKVdUCC/A+puQR+zWIEvhyVTLteOQb3gIGIIE9kUsXWtaGFJvIsmi80gjkOmyNdkupXbERQJ0mjtwylQpGusNgBw24BAhi39zkoFzoZr1NKjrE6jRAwPQLMSGCP0vPTZ57YOjB2lVqC9uoorBKs4VD2u1/rSG0lIIPDsnLMonayUW9kve/k6arOsy8xXsfWbUBD7iIkE=
+    on:
+      repo: melvyn2/PySteamAuth
+      tags: false
+      all_branches: true
+    prerelease: true
+
+  - provider: releases
+    skip_cleanup: true
+    file_glob: true
+    file: pkg/*
+    api_key:
+      secure: GwA4hAtumUXyAuQoc53tCRehfnGCiClibZtwmWSGSV19HwToWM16Y7LgJ3I6Q0Bw5gSdjvSOaHfIRKVSS5rr9iDTiBKEUKcvD21GWSCV7kd5SEubEyPxF0cNZQPq280fj1VoN56gdatFfKeHfiqkAG6B1J7S/+MOUabQeATqdTjxdHnx/5XdU+xFP1R5/nJ9wEr0nGM3B7W56BHolBiuNGBlbScnVq/kX57B2+HylMfG55l+0RoP5Jrxg4jrQIuKiP9cjIVqB+5VN6bAYc0v+NRpixyoII6vWIlUK2kBz1U20qzzopkVVpcA8AE5fiHKyTeEcIklVA99GkYf92zIUNcovJpezYVVmARbtPl8OXF2czsdXnUje5Ec0c3wvwWc2qAmgvsMW6P+WGW9gE02hYCH4F2hCDf9SN8V48L1nREihv+oIxYIQN/c2yHX3HeVwcbOeIo93dgpZOOR5f7GWT2l/OtBmYr5TbKlKVdUCC/A+puQR+zWIEvhyVTLteOQb3gIGIIE9kUsXWtaGFJvIsmi80gjkOmyNdkupXbERQJ0mjtwylQpGusNgBw24BAhi39zkoFzoZr1NKjrE6jRAwPQLMSGCP0vPTZ57YOjB2lVqC9uoorBKs4VD2u1/rSG0lIIPDsnLMonayUW9kve/k6arOsy8xXsfWbUBD7iIkE=
+    on:
+      repo: melvyn2/PySteamAuth
+      tags: true
+    prerelease: false

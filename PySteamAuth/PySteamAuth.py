@@ -422,7 +422,7 @@ def main(argv):  # TODO debug menubar actions
     signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
     signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
     if '--test' in argv:
-        QtCore.QTimer.singleShot(3, app.quit)
+        QtCore.QTimer.singleShot(3000, app.quit)
     while True:
         try:
             with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:

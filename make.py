@@ -86,26 +86,30 @@ if action == 'build':  # TODO add travis & appveyor CI
     os.chdir('build')
     try:
         pre_time = time.time()
-        sp = subprocess.run([sys.executable, '-m', 'nuitka', '--standalone', '--follow-imports',
-                       '--plugin-enable=qt-plugins=sensible,styles',
-                       os.path.join('..', 'PySteamAuth', 'PySteamAuth.py')])
+        sp = subprocess.check_output([sys.executable, '-m', 'nuitka', '--standalone', '--follow-imports',
+                       '--plugin-enable=qt-plugins=sensible,' +
+                                      ('platformthemes' if sys.platform.startswith('linux') else 'styles'),
+                       os.path.join('..', 'PySteamAuth', 'PySteamAuth.py')] +
+                            (['--show-progress'] if '-v' in sys.argv else []))
         print('Nuitka compilation took', time.time() - pre_time, 'seconds')
-    except ImportError:
-        print('Nuitka is missing.')
+    except subprocess.CalledProcessError:
+        print('Nuitka compilation failed')
         sys.exit(1)
 
     try:
-        version = subprocess.run(['git', 'describe', '--tags', '--exact-match'], capture_output=True) \
-            .stdout.decode('utf-8').strip()
-        if version == '':
-            version = 'git' + \
-                      subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True) \
-                          .stdout.decode('utf-8').strip()
-            if version == '':
-                version = '0.0.0'
+        version = subprocess.check_output(['git', 'describe', '--tags', '--exact-match'], stderr=subprocess.PIPE) \
+            .decode('utf-8').strip()
     except FileNotFoundError:
         version = '0.0'
         print('Git is not installed; using default version value')
+    except subprocess.CalledProcessError:
+        try:
+            version = 'git' + \
+                      subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.PIPE) \
+                          .decode('utf-8').strip()
+        except subprocess.CalledProcessError:
+            version = '0.0'
+            print('Not a git repo; using default version value')
 
     if sys.platform == 'darwin':
         os.mkdir('PySteamAuth.app')
@@ -113,7 +117,7 @@ if action == 'build':  # TODO add travis & appveyor CI
         with open('Info.template.plist') as info_f:
             info_plist = info_f.read()
         try:
-            username = subprocess.run(['git', 'config', 'user.name'], capture_output=True).stdout\
+            username = subprocess.check_output(['git', 'config', 'user.name'], stderr=subprocess.PIPE) \
                 .decode('utf-8')\
                 .replace(' ', '')\
                 .replace('\n', '')
@@ -122,6 +126,9 @@ if action == 'build':  # TODO add travis & appveyor CI
         except FileNotFoundError:
             username = 'example'
             print('Git is not installed; using default package id')
+        except subprocess.CalledProcessError:
+            username = 'example'
+            print('Could not fetch git username; using default package id')
         with open(os.path.join('PySteamAuth.app', 'Contents', 'Info.plist'), 'w') as info_f:
             info_f.write(info_plist
                          .replace('${USERNAME}', username)
@@ -138,7 +145,8 @@ if action == 'build':  # TODO add travis & appveyor CI
             os.mkdir('pkg')
         except FileExistsError:
             pass
-        archive_name = 'PySteamAuth-' + version + '-' + sys.platform + '-' + str(struct.calcsize("P") * 8) + 'bit'
+        import platform
+        archive_name = 'PySteamAuth-' + version + '-' + sys.platform + '-' + platform.machine()
         shutil.make_archive(os.path.join('pkg', archive_name), format='zip', root_dir='dist')
 
 elif action == 'install':
