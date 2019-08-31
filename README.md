@@ -48,19 +48,15 @@ Then, build it:
 `$ ./make.py build`
 
 The executable will be packaged into a folder (or an app bundle on 
-macOS) with other files required for PSA to run. If you require 
-portability, using
-
-`$ ./make.py build --compact`
-
-will package everything into a single executable, which is also smaller,
-but has a longer startup time.
+macOS) with other files required for PSA to run in `dist`.
 
 Contributing
 ------------
 * Testing! Simply test this program out and report bugs/missing features.
 
 * Development: add features, fix bugs, and work on TODOs.
+
+* Translations: coming soon
 
 Credits
 -------

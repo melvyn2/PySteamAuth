@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import struct
+import time
 
 
 if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
@@ -30,8 +31,11 @@ if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
 
 
 def clean():
-    delete(os.path.join('build', sys.platform))
-    delete(os.path.join('bin', sys.platform))
+    delete(os.path.join('build', 'PySteamAuth.build'))
+    delete(os.path.join('build', 'PySteamAuth.dist'))
+    delete(os.path.join('build', 'PySteamAuth.app'))
+    delete('dist')
+    delete('pkg')
 
     for f in glob.iglob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '**', '*.pyc'), recursive=True):
         delete(f)
@@ -75,19 +79,67 @@ def build_qt_files():
 action = sys.argv[1].lower() if len(sys.argv) >= 2 else None
 
 if action == 'build':  # TODO add travis & appveyor CI
-    clean()
+    if '--dont-clean' not in sys.argv:
+        clean()
     if '--dont-build-qt' not in sys.argv:
         build_qt_files()
+    os.chdir('build')
     try:
-        from PyInstaller.__main__ import run as freeze
-        if '--compact' in sys.argv:
-            freeze(['PySteamAuth-File.spec'])
-        else:
-            freeze(['PySteamAuth-Folder.spec'])
-        print('You can find your built executable(s) in the \'dist\' directory.')
+        pre_time = time.time()
+        sp = subprocess.run([sys.executable, '-m', 'nuitka', '--standalone', '--follow-imports',
+                       '--plugin-enable=qt-plugins=sensible,styles',
+                       os.path.join('..', 'PySteamAuth', 'PySteamAuth.py')])
+        print('Nuitka compilation took', time.time() - pre_time, 'seconds')
     except ImportError:
-        print('PyInstaller is missing.')
+        print('Nuitka is missing.')
         sys.exit(1)
+
+    try:
+        version = subprocess.run(['git', 'describe', '--tags', '--exact-match'], capture_output=True) \
+            .stdout.decode('utf-8').strip()
+        if version == '':
+            version = 'git' + \
+                      subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True) \
+                          .stdout.decode('utf-8').strip()
+            if version == '':
+                version = '0.0.0'
+    except FileNotFoundError:
+        version = '0.0'
+        print('Git is not installed; using default version value')
+
+    if sys.platform == 'darwin':
+        os.mkdir('PySteamAuth.app')
+        os.mkdir(os.path.join('PySteamAuth.app', 'Contents'))
+        with open('Info.template.plist') as info_f:
+            info_plist = info_f.read()
+        try:
+            username = subprocess.run(['git', 'config', 'user.name'], capture_output=True).stdout\
+                .decode('utf-8')\
+                .replace(' ', '')\
+                .replace('\n', '')
+            if username == '':
+                username = 'example'
+        except FileNotFoundError:
+            username = 'example'
+            print('Git is not installed; using default package id')
+        with open(os.path.join('PySteamAuth.app', 'Contents', 'Info.plist'), 'w') as info_f:
+            info_f.write(info_plist
+                         .replace('${USERNAME}', username)
+                         .replace('${VERSION}', version))
+        os.rename('PySteamAuth.dist', os.path.join('PySteamAuth.app', 'Contents', 'MacOS'))
+        os.chdir('..')
+        os.mkdir('dist')
+        os.rename(os.path.join('build', 'PySteamAuth.app'), os.path.join('dist', 'PySteamAuth.app'))
+    else:
+        os.chdir('..')
+        os.rename(os.path.join('build', 'PySteamAuth.dist'), 'dist')
+    if '--zip' in sys.argv:
+        try:
+            os.mkdir('pkg')
+        except FileExistsError:
+            pass
+        archive_name = 'PySteamAuth-' + version + '-' + sys.platform + '-' + str(struct.calcsize("P") * 8) + 'bit'
+        shutil.make_archive(os.path.join('pkg', archive_name), format='zip', root_dir='dist')
 
 elif action == 'install':
     try:

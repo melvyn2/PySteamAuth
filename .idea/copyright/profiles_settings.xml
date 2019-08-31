@@ -1,7 +1,7 @@
 <component name="CopyrightManager">
   <settings default="Melvyn Depeyrot">
     <module2copyright>
-      <element module="Project Files" copyright="Melvyn Depeyrot" />
+      <element module="Copyright" copyright="Melvyn Depeyrot" />
     </module2copyright>
   </settings>
 </component>
