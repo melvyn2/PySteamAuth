@@ -22,7 +22,7 @@ Requirements
 * [Python 3](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
-* [Steam](https://github.com/ValvePython/steam) (PyPI package is outdated, install from repo or `make.py`)
+* [Steam](https://github.com/ValvePython/steam)==1.0.0a4
 * [PyInstaller](https://github.com/pyinstaller/pyinstaller/)
 
 
@@ -59,6 +59,7 @@ Contributing
 * Testing! Simply test this program out and report bugs/missing features.
 * Development: add features, fix bugs, and work on TODOs.
 * Translations: coming soon
+
 An app icon would also be handy, if you have any ideas for one.
 
 Credits
