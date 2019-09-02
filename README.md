@@ -10,15 +10,19 @@ This program is still in development and is very unstable. Use at your own risk.
 
 Pre-built Downloads
 -------------------
- Downloads are not availible yet as CI/CD is still not set up and manual
-  builds aren't fun. You can still build it yourself.
+Downloads are avalible in [releases](https://github.com/melvyn2/PySteamAuth/releases)
+
+These are built on travis-ci on every commit. If they don't work, please
+open an issue.
+
+Windows builds will be added soon™.
 
 Requirements
 ------------
 * [Python 3](https://www.python.org/)
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
-* [Steam](https://github.com/ValvePython/steam) (PyPI package is outdated, install from repo)
+* [Steam](https://github.com/ValvePython/steam) (PyPI package is outdated, install from repo or `make.py`)
 * [PyInstaller](https://github.com/pyinstaller/pyinstaller/)
 
 
@@ -53,10 +57,9 @@ macOS) with other files required for PSA to run in `dist`.
 Contributing
 ------------
 * Testing! Simply test this program out and report bugs/missing features.
-
 * Development: add features, fix bugs, and work on TODOs.
-
 * Translations: coming soon
+An app icon would also be handy, if you have any ideas for one.
 
 Credits
 -------
