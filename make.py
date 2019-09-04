@@ -78,7 +78,7 @@ def build_qt_files():
 
 action = sys.argv[1].lower() if len(sys.argv) >= 2 else None
 
-if action == 'build':  # TODO add travis & appveyor CI
+if action == 'build':
     if '--dont-clean' not in sys.argv:
         clean()
     if '--dont-build-qt' not in sys.argv:
@@ -86,18 +86,26 @@ if action == 'build':  # TODO add travis & appveyor CI
     os.chdir('build')
     try:
         pre_time = time.time()
-        sp = subprocess.check_output([sys.executable, '-m', 'nuitka', '--standalone', '--follow-imports',
-                       '--plugin-enable=qt-plugins=sensible,' +
-                                      ('platformthemes' if sys.platform.startswith('linux') else 'styles'),
-                       os.path.join('..', 'PySteamAuth', 'PySteamAuth.py')] +
-                            (['--show-progress'] if '-v' in sys.argv else []))
+        args = [sys.executable, '-m', 'nuitka', '--standalone', '--follow-imports',
+                os.path.join('..', 'PySteamAuth', 'PySteamAuth.py')]
+        if sys.platform == 'linux':
+            args.append('--plugin-enable=qt-plugins=sensible,platformthemes')
+        else:
+            args.append('--plugin-enable=qt-plugins=sensible,styles')
+        if sys.platform == 'win32':
+            args.append('--windows-disable-console')
+            args.append('--assume-yes-for-downloads')
+            args.append('--plugin-enable=gevent')
+        if '-v' in sys.argv:
+            args.append('--show-progress')
+        sp = subprocess.check_output(args, shell=(True if sys.platform == 'win32' else False))
         print('Nuitka compilation took', time.time() - pre_time, 'seconds')
     except subprocess.CalledProcessError:
         print('Nuitka compilation failed')
         sys.exit(1)
 
     try:
-        version = subprocess.check_output(['git', 'describe', '--tags', '--exact-match'], stderr=subprocess.PIPE) \
+        version = subprocess.check_output(['git', 'describe', '--exact-match'], stderr=subprocess.PIPE) \
             .decode('utf-8').strip()
     except FileNotFoundError:
         version = '0.0'
@@ -166,7 +174,7 @@ elif action == 'install':
             shutil.copytree(os.path.join('bin', sys.platform, 'PySteamAuth.app'), os.path.join(os.sep, 'Applications'))
             print('PySteamAuth.app has been installed to /Applications')
 
-        elif 'linux' in sys.platform:
+        elif sys.platform == 'linux':
             if not os.path.exists(os.path.join('dist', sys.platform, 'PySteamAuth')):
                 print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
                 sys.exit()
@@ -190,7 +198,7 @@ elif action == 'install':
                 print('PySteamAuth has been installed to /usr/local/bin.')
             if os.path.join(os.sep, 'usr', 'local', 'bin') not in os.environ['PATH']:
                 print('/usr/local/bin is not in your $PATH')
-        elif sys.platform in ['windows', 'win32']:
+        elif sys.platform == 'win32':
             if not os.path.exists(os.path.join('dist', sys.platform, 'PySteamAuth')):
                 print('You must build the program first, like so:\n    {0} build'.format(sys.argv[0]))
                 sys.exit()
@@ -217,7 +225,9 @@ elif action == 'install':
                   '\'dist\' directory.'.format(sys.argv[0]))
     except IOError as e:
         if e.errno in [errno.EACCES, errno.EPERM]:
-            print('Permission denied; Try with sudo?')
+            raise SystemExit('Permission denied; Try with sudo?')
+        else:
+            raise e
 
 
 elif action == 'run':
@@ -236,6 +246,143 @@ elif action == 'deps':
 elif action == 'pyqt-build':
     build_qt_files()
 
+elif action == 'test':
+    if sys.platform != 'win32':
+        try:
+            subprocess.check_call(['sudo', '-n', 'true'])
+        except subprocess.CalledProcessError:
+            raise SystemExit('Failed to use sudo non-interactively')
+        if sys.platform == 'darwin':
+            os.environ['PATH'] += ':/opt/X11/bin'
+        xvfb_proc = subprocess.Popen(['sudo', '-n', 'Xvfb', ':99'])
+        os.environ['DISPLAY'] = ':99'
+    try:
+        python_rc = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                 'PySteamAuth', 'PySteamAuth.py'), '--test'],
+                                   timeout=30).returncode
+        print('Python test return code:', python_rc)
+    except subprocess.TimeoutExpired:
+        print('Python test timed out; using exit code 3')
+        python_rc = 3
+
+    if os.path.isdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')):
+        try:
+            if sys.platform == 'darwin':
+                compiled_rc = subprocess.run([os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist',
+                                                           'PySteamAuth.app', 'Contents', 'MacOS', 'PySteamAuth'),
+                                              '--test'], timeout=30).returncode
+            elif sys.platform == 'win32':
+                compiled_rc = subprocess.run([os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist',
+                                                           'PySteamAuth.exe'), '--test'], timeout=30).returncode
+            else:
+                compiled_rc = subprocess.run([os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist',
+                                                           'PySteamAuth'), '--test'], timeout=30).returncode
+            print('Compiled test exit code:', compiled_rc)
+        except subprocess.TimeoutExpired:
+            print('Compiled test timed out; using exit code 3')
+            compiled_rc = 3
+        final_code = max(abs(python_rc), abs(compiled_rc))
+    else:
+        final_code = python_rc
+
+    try:
+        # noinspection PyUnboundLocalVariable
+        subprocess.run(['sudo', '-n', 'kill', str(xvfb_proc.pid)])
+    except NameError:
+        pass
+    sys.exit(final_code)
+
+elif action == 'deploy':
+    if not glob.glob(os.path.join('pkg', '*.zip')):
+        print('Nothing to upload')
+        sys.exit(0)
+
+    if sys.platform == 'win32':
+        if os.path.isfile(os.path.expanduser(os.path.join('~', 'go', 'bin', 'github-release.exe'))):
+            gh_release = os.path.expanduser(os.path.join('~', 'go', 'bin', 'github-release.exe'))
+        elif shutil.which('github-release.exe'):
+            gh_release = shutil.which('github-release.exe')
+        else:
+            raise SystemExit('Could not find github-release')
+    else:
+        if os.path.isfile(os.path.expanduser(os.path.join('~', 'go', 'bin', 'github-release'))):
+            gh_release = os.path.expanduser(os.path.join('~', 'go', 'bin', 'github-release'))
+        elif shutil.which('github-release'):
+            gh_release = shutil.which('github-release')
+        else:
+            raise SystemExit('Could not find github-release')
+    print('Using github-release at', gh_release)
+
+    set_target = True
+    if '-t' in sys.argv:
+        try:
+            tag = sys.argv[sys.argv.index('-t') + 1]
+        except IndexError:
+            raise SystemExit('No tag supplied')
+    else:
+        try:
+            tag = subprocess.run(['git', 'describe', '--exact-match'], check=True, stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        except FileNotFoundError:
+            raise SystemExit('Failed to find git')
+        except subprocess.CalledProcessError as e:
+            if b'no tag exactly matches' in e.stderr:
+                try:
+                    tag = 'pre-' + subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], check=True,
+                                                  stderr=subprocess.PIPE, stdout=subprocess.PIPE) \
+                                                  .stdout.decode('utf-8').strip()
+                except subprocess.CalledProcessError as e1:
+                    raise SystemExit('Failed to create tag\n' + e1.stderr.decode('utf-8'))
+            else:
+                raise SystemExit('Failed to fetch tag\n' + e.stderr.decode('utf-8'))
+        else:
+            set_target = False
+
+    prerelease = tag.startswith('pre-')
+    print('Using tag', tag)
+
+    if prerelease and '-f' not in sys.argv:
+        try:
+            if subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').strip() \
+                    != 'master':
+                print('Not on master branch or tag; use -f to force')
+                sys.exit(0)
+        except subprocess.CalledProcessError:
+            raise SystemExit('Failed to check branch')
+
+    try:
+        subprocess.run([gh_release, 'info', '--user', 'melvyn2', '--repo', 'PySteamAuth',
+                        '--tag', tag], check=True, stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        raise SystemExit('Failed to find github-release')
+    except subprocess.CalledProcessError as e:
+        if b'could not find the release corresponding to tag' in e.stderr:
+            try:
+                commit_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
+                subprocess.check_call([gh_release, 'release', '--user', 'melvyn2', '--repo', 'PySteamAuth',
+                                       '--security-token', os.environ['GITHUB_TOKEN'], '--tag', tag,
+                                       '--description', ' '] + (['--pre-release'] if prerelease else []) +
+                                      (['--target', commit_sha] if set_target else []))
+            except subprocess.CalledProcessError:
+                raise SystemExit('Failed to create release')
+            except FileNotFoundError:
+                raise SystemExit('Failed to find git')
+            else:
+                print('Created release')
+        else:
+            raise SystemExit('Failed to check release')
+
+    for i in glob.glob(os.path.join('pkg', '*.zip')):
+        try:
+            subprocess.check_call([gh_release, 'upload', '--user', 'melvyn2', '--repo', 'PySteamAuth',
+                                   '--security-token', os.environ['GITHUB_TOKEN'], '--file', i, '--tag', tag,
+                                   '--name', os.path.basename(i)])
+        except subprocess.CalledProcessError:
+            raise SystemExit('Failed to upload' + i)
+        else:
+            print('Uploaded', i)
+
 else:
-    print('Invalid option\nPossible options: build [--compact], install, run [--dont-rebuild-ui], clean, deps [-y],'
-          ' pyqt-build')
+    print('Invalid usage')
+    print('Possible options: build [--zip] [-v] [--dont-rebuild-ui], install, run [--dont-rebuild-ui],'
+          ' clean, deps, pyqt-build')
