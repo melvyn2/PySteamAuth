@@ -1,0 +1,59 @@
+name: Build and Deploy
+on:
+  push:
+    branches: '*'
+
+jobs:
+  macos_build:
+    name: macOS build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: brew cask install xquartz
+      - name: Install Dependencies
+        run: ./make.py deps
+      - run: git config --global user.name melvyn2
+      - name: Build
+        run: ./make.py build --zip -v
+      - name: Test
+        run: ./make.py test
+      - run: go get github.com/aktau/github-release
+      - name: Deploy
+        run: ./make.py deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  linux_build:
+    name: Linux build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: sudo apt-get install xvfb libxkbcommon-x11-0
+      - run: python3 -m pip install setuptools wheel
+      - name: Install Dependencies
+        run: ./make.py deps
+      - name: Build
+        run: ./make.py build --zip -v
+      - name: Test
+        run: ./make.py test
+      - run: go get github.com/aktau/github-release
+      - name: Deploy
+        run: ./make.py deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  windows_build:
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: python -m pip install wheel
+      - name: Install Dependencies
+        run: python make.py deps
+      - name: Build
+        run: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && python make.py build --zip -v'
+      - name: Test
+        run: python make.py test
+      - run: go get github.com/aktau/github-release
+      - name: Deploy
+        run: python make.py deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -23,7 +23,7 @@ Requirements
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)
 * [Requests](http://docs.python-requests.org/en/master/)
 * [Steam](https://github.com/ValvePython/steam)==1.0.0a4
-* [PyInstaller](https://github.com/pyinstaller/pyinstaller/)
+* [Nuitka](https://github.com/nuitka/nuitka/)
 
 
 Running Directly
