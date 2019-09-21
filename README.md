@@ -2,6 +2,8 @@
 
 A desktop alternative to the Steam Mobile Authenticator
 
+![](https://github.com/melvyn2/PySteamAuth/workflows/Build/badge.svg)
+
 DISCLAIMER
 ----------
 ALWAYS KEEP COPIES OF YOUR AUTHENTICATOR FILES AND REVOCATION CODE!
@@ -10,12 +12,12 @@ This program is still in development and is very unstable. Use at your own risk.
 
 Pre-built Downloads
 -------------------
-Downloads are avalible in [releases](https://github.com/melvyn2/PySteamAuth/releases)
+Downloads are avalible on github releases; you can grab the latest
+[here](https://github.com/melvyn2/PySteamAuth/releases/latest).
 
-These are built on travis-ci on every commit. If they don't work, please
-open an issue.
-
-Windows builds will be added soon™.
+Pre-releases are built on every commit; these may be buggy or not launch
+at all. Release are built on tagged commits, and are much more likely to
+work.
 
 Requirements
 ------------
