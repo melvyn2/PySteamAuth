@@ -27,9 +27,10 @@ from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 import PyUIs
-import ConfirmationHandler
 import AccountHandler
+import ConfirmationHandler
 import Common
+import FileHandler
 
 
 if not(sys.version_info.major == 3 and sys.version_info.minor >= 6):
@@ -483,7 +484,7 @@ def app_load():
     main_ui.confListButton.clicked.connect(lambda: open_conf_dialog(sa))
     main_ui.removeButton.clicked.connect(lambda: remove_authenticator(sa))
     main_ui.createBCodesButton.clicked.connect(lambda: backup_codes_popup(sa))
-    main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete(sa))
+    main_ui.removeBCodesButton.clicked.connect(lambda: print(FileHandler.request_password('oof')))
     main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(os.path.join(mafiles_folder_path,
                                                                                          mafile_name)))
     main_ui.actionSwitch.triggered.connect(lambda c: (manifest.pop('selected_account'), save_mafiles(sa),

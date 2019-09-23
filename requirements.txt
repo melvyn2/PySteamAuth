@@ -1,3 +1,5 @@
+bpylist
+cryptography
 PyQt5
 requests
 https://github.com/Nuitka/Nuitka/archive/fc25e8c25a573b98abed6123e86f9b08ab729a62.zip
