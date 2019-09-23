@@ -404,25 +404,18 @@ def copy_mafiles():
         break
 
 
-# inspection PyUnresolvedReferences
-def main(argv):  # TODO debug menubar actions
-    global mafiles_folder_path, mafile_name, manifest_entry_index, app, manifest, main_window, main_ui
+def app_load():
+    global mafiles_folder_path, mafile_name, manifest_entry_index, manifest
+
     base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
         else os.path.dirname(os.path.abspath(__file__))
     if test_mafiles(os.path.join(base_path, 'maFiles')):
         mafiles_folder_path = os.path.join(base_path, 'maFiles')
-    elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in argv:
+    elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in sys.argv:
         mafiles_folder_path = os.path.expanduser(os.path.join('~', '.maFiles'))
     else:
         mafiles_folder_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) ==\
                                       'PySteamAuth' else os.path.expanduser(os.path.join('~', '.maFiles'))
-    # TODO Generally fix the above
-
-    app = QtWidgets.QApplication(argv)
-    signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
-    signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
-    if '--test' in argv:
-        QtCore.QTimer.singleShot(3000, app.quit)
     while True:
         try:
             with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
@@ -475,13 +468,8 @@ def main(argv):  # TODO debug menubar actions
             setup_ui.setupButton.clicked.connect(lambda: (setup_dialog.accept(), add_authenticator()))
             setup_ui.importButton.clicked.connect(lambda: (copy_mafiles(), setup_dialog.accept()))
             setup_ui.quitButton.clicked.connect(sys.exit)
-            if '--test' in argv:
-                QtCore.QTimer.singleShot(10, sys.exit)
             setup_dialog.exec_()
     sa = guard.SteamAuthenticator(maf)
-    main_window = QtWidgets.QMainWindow()
-    main_ui = PyUIs.MainWindow.Ui_MainWindow()
-    main_ui.setupUi(main_window)
     main_window.setWindowTitle('PySteamAuth - ' + sa.secrets['account_name'])
     main_ui.codeBox.setText(sa.get_code())
     main_ui.codeBox.setAlignment(QtCore.Qt.AlignCenter)
@@ -517,12 +505,25 @@ def main(argv):  # TODO debug menubar actions
     main_window.show()
     main_window.raise_()
 
-    if '--test' in argv:
-        QtCore.QTimer.singleShot(3, app.quit)
-
-    app.exec_()
-
     save_mafiles(sa)
+
+
+def main(argv):  # TODO debug menubar actions
+    global app, main_window, main_ui
+
+    sys.argv = argv
+
+    signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
+    signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
+
+    app = QtWidgets.QApplication(argv)
+    if '--test' in argv:
+        QtCore.QTimer.singleShot(3000, app.quit)
+    main_window = QtWidgets.QMainWindow()
+    main_ui = PyUIs.MainWindow.Ui_MainWindow()
+    main_ui.setupUi(main_window)
+    QtCore.QTimer.singleShot(0, app_load)
+    app.exec_()
 
 
 if __name__ == '__main__':
