@@ -23,7 +23,7 @@
    <cursorShape>ArrowCursor</cursorShape>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Choose Account</string>
   </property>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="enabled">

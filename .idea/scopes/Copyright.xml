@@ -1,3 +1,0 @@
-<component name="DependencyValidationManager">
-  <scope name="Copyright" pattern="file[PySteamAuth]:PySteamAuth/*||file[PySteamAuth]:PySteamAuth/UIs/*||file:make.py" />
-</component>

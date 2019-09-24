@@ -16,8 +16,9 @@
 import PyUIs
 import Common
 
+import sys
 import os
-import time
+import json
 import hashlib
 from PyQt5 import QtWidgets, QtCore
 from bpylist import archiver
@@ -32,27 +33,43 @@ class Empty(object):
     pass
 
 
-def decrypt_entry(entry, entry_data):
+mafiles_path = ''
+manifest = {}
+
+def set_mafile_location():
+    global mafiles_path
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), 'maFiles', 'manifest.json')) \
+       or '--dbg' in sys.argv:
+        mafiles_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'maFiles'))
+    elif os.path.isfile(os.path.join(os.path.expanduser('~'), 'maFiles', 'manifest.json')):
+        mafiles_path = os.path.abspath(os.path.join(os.path.expanduser('~'), 'maFiles'))
+    else:
+        mafiles_path = os.path.abspath(os.path.join(os.path.expanduser('~'), '.maFiles'))
+
+
+def load_manifest():
+    with open(os.path.join(mafiles_path, 'manifest.json')) as f:
+        manifest = json.load(f)
+
+
+def encrypt_files():
     def _handle_pw():
         password_ui.passwordBox.setDisabled(True)
         try:
-            mafile_json = password_ui.passwordBox.text()
-            # mafile_json = decrypt_data(entry_data, password_ui.passwordBox.text(), entry['encryption_salt'],
-            #                            entry['encryption_iv']).decode('ascii')
-            setattr(returnholder, 'value', mafile_json)
-        except (UnicodeDecodeError, ValueError):
+            with open(os.path.join(mafiles_path, entry['filename']), 'rb') as f:
+                data = decrypt_data(f.read(), password_ui.passwordBox.text(), entry['encryption_salt'],
+                                    entry['encryption_iv']).decode('ascii')
+                password_dialog.close()
+                return json.loads(data)
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
             pw_wrong_anim.start()
             QtCore.QTimer.singleShot(pw_wrong_anim.duration(), lambda: password_ui.passwordBox.setDisabled(False))
-        else:
-            password_dialog.close()
-            return mafile_json
-    returnholder = Empty()
+        except IOError:
+            Common.error_popup('Failed to read encrypted entry data')
     password_dialog = QtWidgets.QDialog()
     password_ui = PyUIs.PasswordDialog.Ui_Dialog()
     password_ui.setupUi(password_dialog)
-    password_dialog.setWindowTitle('Password')
     password_ui.msgLabel.setText('Please enter the password for the entry ' + entry['steamid'])
-    password_ui.passwordBox.setEchoMode(QtWidgets.QLineEdit.Password)
     pre_anim = password_ui.passwordBox.geometry()
     pw_wrong_anim = QtCore.QPropertyAnimation(password_ui.passwordBox, b'geometry')
     pw_wrong_anim.setDuration(750)
@@ -66,10 +83,30 @@ def decrypt_entry(entry, entry_data):
     pw_wrong_anim.setKeyValueAt(0.7, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
     pw_wrong_anim.setKeyValueAt(0.8, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
     pw_wrong_anim.setKeyValueAt(1, pre_anim)
-    password_ui.buttonBox.rejected.connect(lambda: setattr(returnholder, 'value', False))
     password_ui.acceptButton.clicked.connect(_handle_pw())
     password_dialog.exec_()
-    return getattr(returnholder, 'value', None)
+    return None
+
+
+def encrypt_mafiles():
+    def _handle_pw():
+        with open(os.path.join(mafiles_path, 'manifes'))  # TODO use globle manifest
+        try:
+            data = json.dumps(secrets, ensure_ascii=True).encode('ascii')
+            iv = os.urandom(16)
+            salt = os.urandom(8)
+            with open(os.path.join(mafiles_path, entry['filename']), 'wb') as f:
+                f.write(encrypt_data(data, password_ui.passwordBox.text(), salt, iv))
+        except (UnicodeEncodeError, ValueError):
+            Common.error_popup('Failed to encrypt entry')
+        except IOError:
+            Common.error_popup('Failed to write encrypted entry to file')
+    password_dialog = QtWidgets.QDialog()
+    password_ui = PyUIs.PasswordDialog.Ui_Dialog()
+    password_ui.setupUi(password_dialog)
+    password_ui.msgLabel.setText('Please enter a password to encrypt your authenticator files')
+    password_ui.acceptButton.clicked.connect(_handle_pw())
+    password_dialog.exec_()
 
 
 def encrypt_data(data, password, salt, iv):

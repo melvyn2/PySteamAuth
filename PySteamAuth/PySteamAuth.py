@@ -299,7 +299,7 @@ def add_authenticator():
             code_ui = PyUIs.PhoneDialog.Ui_Dialog()
             code_ui.setupUi(code_dialog)
             code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-            code_dialog.setWindowTitle('Remove old authenticator')
+            code_dialog.setWindowTitle('Revocation Code')
             code_ui.actionBox.setText('There is already an authenticator associated with this account.'
                                       ' Enter its revocation code to remove it.')
             code_dialog.exec_()
