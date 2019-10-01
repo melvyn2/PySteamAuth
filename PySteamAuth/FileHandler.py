@@ -20,7 +20,9 @@ import sys
 import os
 import json
 import hashlib
+
 from PyQt5 import QtWidgets, QtCore
+from steam import guard
 from bpylist import archiver
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
@@ -35,6 +37,7 @@ class Empty(object):
 
 mafiles_path = ''
 manifest = {}
+manifest_password = ''  # Let's hope memory protection is good enough
 
 def set_mafile_location():
     global mafiles_path
@@ -48,24 +51,95 @@ def set_mafile_location():
 
 
 def load_manifest():
+    global manifest
     with open(os.path.join(mafiles_path, 'manifest.json')) as f:
         manifest = json.load(f)
+    if not manifest.get('selected_account', False):
+        manifest.update({'selected_account': 0})
+
+def load_entry(index=-1):
+    if index == -1:
+        index = manifest['selected_account']
+
+    if manifest['encrypted']:
+        # secrets = decrypt_entry(index)
+        secrets = {}
+    else:
+        try:
+            with open(os.path.join(mafiles_path, manifest['entries'][index]['filename'])) as f:
+                secrets = json.load(f)
+        except IOError:
+            Common.error_popup('Failed to load entry')
+            return None
+        except json.JSONDecodeError:
+            Common.error_popup('Failed to decode entry')
+            return None
+    if not secrets.get('device_id', False):
+        secrets.update({'device_id': guard.generate_device_id(manifest['entries'][index]['steamid'])})
+        save_entry(index)
+    return secrets
 
 
-def encrypt_files():
+def save_entry(secrets, index=-1):
+    if index == -1:
+        index = manifest['selected_account']
+    if manifest['encrypted']:
+
+
+def request_password(handler):
     def _handle_pw():
+        nonlocal password
         password_ui.passwordBox.setDisabled(True)
         try:
             with open(os.path.join(mafiles_path, entry['filename']), 'rb') as f:
-                data = decrypt_data(f.read(), password_ui.passwordBox.text(), entry['encryption_salt'],
-                                    entry['encryption_iv']).decode('ascii')
+                password = json.loads(decrypt_data(f.read(), password_ui.passwordBox.text(), entry['encryption_salt'],
+                                    entry['encryption_iv']).decode('ascii'))
                 password_dialog.close()
-                return json.loads(data)
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
             pw_wrong_anim.start()
             QtCore.QTimer.singleShot(pw_wrong_anim.duration(), lambda: password_ui.passwordBox.setDisabled(False))
         except IOError:
             Common.error_popup('Failed to read encrypted entry data')
+            password_dialog.close()
+    password = None
+    password_dialog = QtWidgets.QDialog()
+    password_ui = PyUIs.PasswordDialog.Ui_Dialog()
+    password_ui.setupUi(password_dialog)
+    pre_anim = password_ui.passwordBox.geometry()
+    pw_wrong_anim = QtCore.QPropertyAnimation(password_ui.passwordBox, b'geometry')
+    pw_wrong_anim.setDuration(750)
+    pw_wrong_anim.setKeyValueAt(0, password_ui.passwordBox.geometry().adjusted(3, 0, 5, 0))
+    pw_wrong_anim.setKeyValueAt(0.1, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
+    pw_wrong_anim.setKeyValueAt(0.2, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
+    pw_wrong_anim.setKeyValueAt(0.3, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
+    pw_wrong_anim.setKeyValueAt(0.4, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
+    pw_wrong_anim.setKeyValueAt(0.5, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
+    pw_wrong_anim.setKeyValueAt(0.6, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
+    pw_wrong_anim.setKeyValueAt(0.7, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
+    pw_wrong_anim.setKeyValueAt(0.8, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
+    pw_wrong_anim.setKeyValueAt(1, pre_anim)
+    password_ui.acceptButton.clicked.connect(_handle_pw)
+    password_dialog.exec_()
+    _handle_pw()
+
+
+def decrypt_entry(index):
+    def _handle_pw():
+        nonlocal data
+        password_ui.passwordBox.setDisabled(True)
+        try:
+            with open(os.path.join(mafiles_path, entry['filename']), 'rb') as f:
+                data = json.loads(decrypt_data(f.read(), password_ui.passwordBox.text(), entry['encryption_salt'],
+                                    entry['encryption_iv']).decode('ascii'))
+                password_dialog.close()
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+            pw_wrong_anim.start()
+            QtCore.QTimer.singleShot(pw_wrong_anim.duration(), lambda: password_ui.passwordBox.setDisabled(False))
+        except IOError:
+            Common.error_popup('Failed to read encrypted entry data')
+            password_dialog.close()
+    data = None
+    entry = manifest['entries'][index]
     password_dialog = QtWidgets.QDialog()
     password_ui = PyUIs.PasswordDialog.Ui_Dialog()
     password_ui.setupUi(password_dialog)
@@ -83,12 +157,13 @@ def encrypt_files():
     pw_wrong_anim.setKeyValueAt(0.7, password_ui.passwordBox.geometry().adjusted(-6, 0, -6, 0))
     pw_wrong_anim.setKeyValueAt(0.8, password_ui.passwordBox.geometry().adjusted(6, 0, 6, 0))
     pw_wrong_anim.setKeyValueAt(1, pre_anim)
-    password_ui.acceptButton.clicked.connect(_handle_pw())
+    password_ui.acceptButton.clicked.connect(_handle_pw)
     password_dialog.exec_()
-    return None
+    _handle_pw()
+    return data
 
 
-def encrypt_mafiles():
+def encrypt_entry():
     def _handle_pw():
         with open(os.path.join(mafiles_path, 'manifes'))  # TODO use globle manifest
         try:

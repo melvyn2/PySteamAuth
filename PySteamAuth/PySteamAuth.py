@@ -16,12 +16,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import json
+# import json
 import signal
 import sys
 import shutil
 import os
 import subprocess
+import errno
+
 import requests
 from steam import guard
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -405,19 +407,42 @@ def copy_mafiles():
         shutil.copytree(f, mafiles_folder_path)
         break
 
+def open_setup():
+    while True:
+        if os.path.isdir(mafiles_folder_path):
+            if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
+                    in os.listdir(mafiles_folder_path):
+                Common.error_popup('Failed to load maFile: ' + str(e))
+        setup_dialog = QtWidgets.QDialog()
+        setup_ui = PyUIs.SetupDialog.Ui_Dialog()
+        setup_ui.setupUi(setup_dialog)
+        setup_ui.setupButton.clicked.connect(lambda: (setup_dialog.accept(), add_authenticator()))
+        setup_ui.importButton.clicked.connect(lambda: (copy_mafiles(), setup_dialog.accept()))
+        setup_ui.quitButton.clicked.connect(sys.exit)
+        setup_dialog.exec_()
+
 
 def app_load():
-    global mafiles_folder_path, mafile_name, manifest_entry_index, manifest
+    global mafiles_folder_path, mafile_name, manifest_entry_index
 
-    base_path = os.path.dirname(os.path.abspath(sys.executable)) if getattr(sys, 'frozen', False)\
-        else os.path.dirname(os.path.abspath(__file__))
-    if test_mafiles(os.path.join(base_path, 'maFiles')):
-        mafiles_folder_path = os.path.join(base_path, 'maFiles')
-    elif test_mafiles(os.path.expanduser(os.path.join('~', '.maFiles'))) and '--dbg' not in sys.argv:
-        mafiles_folder_path = os.path.expanduser(os.path.join('~', '.maFiles'))
-    else:
-        mafiles_folder_path = os.path.join(base_path, 'maFiles') if os.path.basename(os.path.normpath(base_path)) ==\
-                                      'PySteamAuth' else os.path.expanduser(os.path.join('~', '.maFiles'))
+    FileHandler.set_mafile_location()
+    try:
+        FileHandler.load_manifest()
+    except IOError as e:
+        if not e.errno == errno.ENOENT:
+            Common.error_popup('Failed to load maFiles at', FileHandler.mafiles_path)
+        open_setup()
+    except FileHandler.json.JSONDecodeError:
+        Common.error_popup('Failed to load maFiles at', FileHandler.mafiles_path)
+        open_setup()
+
+    if FileHandler.manifest['encrypted']:
+        FileHandler.request_password()
+
+    secrets = FileHandler.load_entry()
+    if not secrets:
+        open_setup()
+
     while True:
         try:
             with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
