@@ -60,9 +60,16 @@ def full_refresh(sa):
     return True
 
 
-def get_mobilewebauth(sa=None, force_login=True):
-    if sa and isinstance(sa.backend, webauth.MobileWebAuth) and sa.backend.logged_on:
+def get_mobilewebauth(sa, force_login=True):
+    if sa.backend.logged_on:
         return sa.backend
+    if 'Session' in sa.secrets.keys():
+        token = sa.secrets['Session'].get('OAuthToken', False)
+
+        if token:
+            try:
+                sa.backend = webauth.MobileWebAuth()
+                sa.backend.oauth_login()
     endfunc = Empty()
     endfunc.endfunc = False
     login_dialog = QtWidgets.QDialog()

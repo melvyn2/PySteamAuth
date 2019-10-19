@@ -68,14 +68,6 @@ def open_path(path):
         subprocess.Popen(["xdg-open", path])
 
 
-def save_mafiles(sa=None):
-    with open(os.path.join(mafiles_folder_path, 'manifest.json'), 'w') as manifest_file:
-        json.dump(manifest, manifest_file)
-    if sa:
-        with open(os.path.join(mafiles_folder_path, mafile_name), 'w') as mafile:
-            json.dump(sa.secrets, mafile)
-
-
 def refresh_session_handler():
     pass
 
@@ -132,38 +124,6 @@ def backup_codes_delete(sa):
         sa.destroy_emergency_codes()
     except guard.SteamAuthenticatorError as e:
         Common.error_popup(str(e))
-
-
-def test_mafiles(path, entry=False):
-    try:
-        manifest_file = open(os.path.join(path, 'manifest.json'))
-    except IOError:
-        return False
-    test_manifest = json.load(manifest_file)
-    if entry:
-        try:
-            with open(os.path.join(path, test_manifest['entries'][entry]['filename'])) as maf_file:
-                maf = json.loads(maf_file.read())
-            sa = guard.SteamAuthenticator(secrets=maf)
-            sa.get_code()
-        except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
-            manifest_file.close()
-            return False
-        manifest_file.close()
-        return True
-    else:
-        valid_entries = []
-        for i in test_manifest['entries']:
-            try:
-                with open(os.path.join(path, i['filename'])) as maf_file:
-                    maf = json.loads(maf_file.read())
-                sa = guard.SteamAuthenticator(secrets=maf)
-                sa.get_code()
-                valid_entries.append(i)
-            except (IOError, json.decoder.JSONDecodeError, guard.SteamAuthenticatorError):
-                continue
-        manifest_file.close()
-        return valid_entries
 
 
 def set_autoaccept(timer, sa, trades, markets):
@@ -386,27 +346,6 @@ def remove_authenticator(sa):
     save_mafiles()
     restart()
 
-
-def copy_mafiles():
-    while True:
-        file_dialog = QtWidgets.QFileDialog()
-        f = str(file_dialog.getExistingDirectory(caption='Select your maFiles folder.'))
-        if f == '':
-            break
-        if not test_mafiles(f):
-            Common.error_popup('The selected folder does not contain valid maFiles.')
-            continue
-        if os.path.isdir(mafiles_folder_path):
-            if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
-                    in os.listdir(mafiles_folder_path):
-                Common.error_popup('The maFiles folder at {} is not empty.\nPlease remove it.'
-                                   .format(mafiles_folder_path))
-                continue
-            else:
-                shutil.rmtree(mafiles_folder_path)
-        shutil.copytree(f, mafiles_folder_path)
-        break
-
 def open_setup():
     while True:
         if os.path.isdir(mafiles_folder_path):
@@ -423,8 +362,6 @@ def open_setup():
 
 
 def app_load():
-    global mafiles_folder_path, mafile_name, manifest_entry_index
-
     FileHandler.set_mafile_location()
     try:
         FileHandler.load_manifest()
@@ -440,80 +377,37 @@ def app_load():
         FileHandler.request_password()
 
     secrets = FileHandler.load_entry()
+
     if not secrets:
         open_setup()
 
-    while True:
-        try:
-            with open(os.path.join(mafiles_folder_path, 'manifest.json')) as manifest_file:
-                manifest = json.loads(manifest_file.read())  # TODO add encryption support
-            valid_entries = test_mafiles(mafiles_folder_path)
-            if len(valid_entries) == 0:
-                raise ValueError('No valid Manifest Entries found!')
-            manifest_entry_index = 0
-            if len(manifest['entries']) > 1:
-                if ('selected_account' in manifest) and manifest['selected_account'] < len(manifest['entries']):
-                    manifest_entry_index = manifest['selected_account']
-                else:
-                    ac_dialog = QtWidgets.QDialog()
-                    ac_ui = PyUIs.AccountChooserDialog.Ui_Dialog()
-                    ac_ui.setupUi(ac_dialog)
-                    for i in valid_entries:
-                        try:
-                            entry = [None, str(i['steamid']), i['filename']]
-                            with open(os.path.join(mafiles_folder_path, i['filename'])) as ma_file:
-                                entry[0] = json.load(ma_file)['account_name']
-                            ac_ui.accountSelectList.addTopLevelItem(QtWidgets.QTreeWidgetItem(entry))
-                        except (json.JSONDecodeError, IOError):
-                            continue
-                    # noinspection PyUnresolvedReferences
-                    ac_dialog.rejected.connect(sys.exit)
-                    ac_ui.accountSelectList.itemSelectionChanged.connect(
-                        lambda: ac_ui.buttonBox.setDisabled(len(ac_ui.accountSelectList.selectedItems()) != 1))
-                    ac_dialog.exec_()
-                    manifest_entry_index = ac_ui.accountSelectList.selectedIndexes()[0].row()
-                    manifest['selected_account'] = manifest_entry_index
-            mafile_name = manifest['entries'][manifest_entry_index]['filename']
-            with open(os.path.join(mafiles_folder_path, mafile_name), 'r+') as ma_file:
-                maf = json.load(ma_file)
-                if 'device_id' not in maf:
-                    maf['device_id'] = guard.generate_device_id(maf['steamid'])
-                    ma_file.seek(0)
-                    ma_file.write(json.dumps(maf))
-                    ma_file.truncate()
-            if not test_mafiles(mafiles_folder_path, manifest_entry_index):
-                raise IOError()
-            break
-        except (IOError, ValueError, TypeError, IndexError, KeyError) as e:
-            if os.path.isdir(mafiles_folder_path):
-                if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
-                        in os.listdir(mafiles_folder_path):
-                    Common.error_popup('Failed to load maFile: ' + str(e))
-            setup_dialog = QtWidgets.QDialog()
-            setup_ui = PyUIs.SetupDialog.Ui_Dialog()
-            setup_ui.setupUi(setup_dialog)
-            setup_ui.setupButton.clicked.connect(lambda: (setup_dialog.accept(), add_authenticator()))
-            setup_ui.importButton.clicked.connect(lambda: (copy_mafiles(), setup_dialog.accept()))
-            setup_ui.quitButton.clicked.connect(sys.exit)
-            setup_dialog.exec_()
-    sa = guard.SteamAuthenticator(maf)
+    try:
+        mwa = guard.MobileWebAuth(secrets['account_name'])
+        mwa.oauth_login(oauth_token=secrets['Session']['OAuthToken'],
+                        steam_id=FileHandler.manifest['entries'][FileHandler.manifest['selected_account']]['steamid'])
+    except KeyError:
+        mwa = AccountHandler.get_mobilewebauth()  # TODO check if this even works
+        if not secrets['Session']:
+            secrets['Session'] = {'OAuthToken': mwa.oauth_token}
+        FileHandler.save_entry(secrets)
+
+    sa = guard.SteamAuthenticator(secrets=secrets, backend=mwa)
+
     main_window.setWindowTitle('PySteamAuth - ' + sa.secrets['account_name'])
     main_ui.codeBox.setText(sa.get_code())
     main_ui.codeBox.setAlignment(QtCore.Qt.AlignCenter)
     main_ui.copyButton.clicked.connect(lambda: (main_ui.codeBox.selectAll(), main_ui.codeBox.copy()))
     main_ui.codeTimeBar.setTextVisible(False)
     main_ui.codeTimeBar.valueChanged.connect(main_ui.codeTimeBar.repaint)
-    main_ui.tradeCheckBox.setChecked(manifest['auto_confirm_trades'])
-    main_ui.marketCheckBox.setChecked(manifest['auto_confirm_market_transactions'])
+    main_ui.tradeCheckBox.setChecked(FileHandler.manifest['auto_confirm_trades'])
+    main_ui.marketCheckBox.setChecked(FileHandler.manifest['auto_confirm_market_transactions'])
     main_ui.confAllButton.clicked.connect(lambda: accept_all(sa))
     main_ui.confListButton.clicked.connect(lambda: open_conf_dialog(sa))
     main_ui.removeButton.clicked.connect(lambda: remove_authenticator(sa))
     main_ui.createBCodesButton.clicked.connect(lambda: backup_codes_popup(sa))
-    main_ui.removeBCodesButton.clicked.connect(lambda: print(FileHandler.request_password('oof')))
-    main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(os.path.join(mafiles_folder_path,
-                                                                                         mafile_name)))
-    main_ui.actionSwitch.triggered.connect(lambda c: (manifest.pop('selected_account'), save_mafiles(sa),
-                                                      restart()))
+    main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete())
+    main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(os.path.join(FileHandler.mafiles_path)))
+    main_ui.actionSwitch.triggered.connect(lambda c: switch_account(c))
 
     code_timer = QtCore.QTimer(main_window)
     code_timer.setInterval(1000)
@@ -558,4 +452,4 @@ if __name__ == '__main__':
     try:
         main(sys.argv)
     except KeyboardInterrupt:
-        sys.exit()
+        app.exit(0)

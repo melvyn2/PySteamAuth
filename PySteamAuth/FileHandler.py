@@ -62,8 +62,16 @@ def load_entry(index=-1):
         index = manifest['selected_account']
 
     if manifest['encrypted']:
-        # secrets = decrypt_entry(index)
-        secrets = {}
+        try:
+            with open(os.path.join(mafiles_path, manifest['entries'][index]['filename']), 'rb') as f:
+                secrets = json.loads(decrypt_data(f.read(), password, manifest['entries'][0]['encryption_salt'],
+                                     manifest['entries'][0]['encryption_iv']))
+        except (UnicodeDecodeError, UnicodeEncodeError, ValueError, json.JSONDecodeError):
+            Common.error_popup('Failed to decrypt entry')
+            return False
+        except IOError:
+            Common.error_popup('Failed to read encrypted entry data')
+            return False
     else:
         try:
             with open(os.path.join(mafiles_path, manifest['entries'][index]['filename'])) as f:
@@ -86,22 +94,28 @@ def save_entry(secrets, index=-1):
     if manifest['encrypted']:
 
 
-def request_password(handler):
+def remove_entry(index=-1):
+    if index == -1:
+        index = manifest['selected_account']
+    os.remove(manifest['selected_account']['filename'])
+    manifest['selected_account'].pop(index)
+
+def request_password():
     def _handle_pw():
-        nonlocal password
+        global password
         password_ui.passwordBox.setDisabled(True)
         try:
-            with open(os.path.join(mafiles_path, entry['filename']), 'rb') as f:
-                password = json.loads(decrypt_data(f.read(), password_ui.passwordBox.text(), entry['encryption_salt'],
-                                    entry['encryption_iv']).decode('ascii'))
-                password_dialog.close()
-        except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+            with open(os.path.join(mafiles_path, manifest['entries'][0]['filename']), 'rb') as f:
+                json.loads(decrypt_data(f.read(), password_ui.passwordBox.text().encode('ascii'),
+                           manifest['entries'][0]['encryption_salt'], manifest['entries'][0]['encryption_iv']))
+            password_dialog.close()
+            password = password_ui.passwordBox.text().encode('ascii')
+        except (UnicodeDecodeError, UnicodeEncodeError, ValueError, json.JSONDecodeError):
             pw_wrong_anim.start()
             QtCore.QTimer.singleShot(pw_wrong_anim.duration(), lambda: password_ui.passwordBox.setDisabled(False))
         except IOError:
             Common.error_popup('Failed to read encrypted entry data')
             password_dialog.close()
-    password = None
     password_dialog = QtWidgets.QDialog()
     password_ui = PyUIs.PasswordDialog.Ui_Dialog()
     password_ui.setupUi(password_dialog)
@@ -120,7 +134,6 @@ def request_password(handler):
     pw_wrong_anim.setKeyValueAt(1, pre_anim)
     password_ui.acceptButton.clicked.connect(_handle_pw)
     password_dialog.exec_()
-    _handle_pw()
 
 
 def decrypt_entry(index):
