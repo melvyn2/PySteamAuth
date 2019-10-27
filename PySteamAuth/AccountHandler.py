@@ -26,7 +26,6 @@ import Common
 
 class Empty:
     pass
-# TODO move file handling here
 
 
 def refresh_session(sa):  # TODO only run this when steammobile://lostauth
@@ -68,8 +67,16 @@ def get_mobilewebauth(sa, force_login=True):
 
         if token:
             try:
-                sa.backend = webauth.MobileWebAuth()
-                sa.backend.oauth_login()
+                sa.backend = webauth.MobileWebAuth(username=sa.secrets['account_name'])
+                sa.backend.oauth_login(oauth_token=sa.secrets['Session']['OAuthToken'],
+                                       steam_id=sa.secrets['Session']['SteamID'])
+            except webauth.LoginIncorrect:
+                pass
+            except webauth.WebAuthException:
+                Common.error_popup('Failed to decode login response')
+                pass
+            else:
+                return sa
     endfunc = Empty()
     endfunc.endfunc = False
     login_dialog = QtWidgets.QDialog()
@@ -187,6 +194,7 @@ def get_mobilewebauth(sa, force_login=True):
                     break
         if user.logged_on:
             break
-    if sa:
-        sa.backend = user
+    sa.backend = user
+    sa.secrets['Session']['OAuthToken'] = user.oauth_token
+    sa.secrets['Session']['SteamID'] = user.steam_id
     return user
