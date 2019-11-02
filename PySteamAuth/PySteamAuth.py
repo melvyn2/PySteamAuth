@@ -217,7 +217,7 @@ def open_conf_dialog(sa):
                 info.index -= 1
         conf_ui.titleLabel.setText(conf.description)
         conf_ui.infoLabel.setText('{0}\nTime: {1}\nID: {2}\nType: {3}'
-            .format(conf.sub_description, conf.time, conf.id, conf.type_str))
+                                  .format(conf.sub_description, conf.time, conf.id, conf.type_str))
         if conf.icon_url:
             pixmap = QtGui.QPixmap()
             pixmap.loadFromData(requests.get(conf.icon_url).content)
@@ -249,9 +249,10 @@ def open_conf_dialog(sa):
     load_info()
     conf_ui.refreshButton.clicked.connect(refresh_confs)
     conf_ui.nextButton.clicked.connect(lambda: (setattr(info, 'index', ((info.index + 1) if info.index <
-                                                                (len(info.confs) - 1) else info.index)), load_info()))
+                                                                        (len(info.confs) - 1) else info.index)),
+                                                load_info()))
     conf_ui.backButton.clicked.connect(lambda: (setattr(info, 'index', ((info.index - 1) if info.index > 0
-                                                                       else info.index)), load_info()))
+                                                                        else info.index)), load_info()))
     conf_ui.acceptButton.clicked.connect(accept)
     conf_ui.denyButton.clicked.connect(deny)
     conf_dialog.exec_()
@@ -271,7 +272,7 @@ def add_authenticator():
         code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
         code_dialog.setWindowTitle('Phone number')
         code_ui.actionBox.setText('This account is missing a phone number. Type yours below to add it.\n'
-                              'Eg. +1 123-456-7890')
+                                  'Eg. +1 123-456-7890')
         code_dialog.exec_()
         if endfunc.endfunc:
             return
@@ -299,7 +300,7 @@ def add_authenticator():
             code_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
             code_dialog.setWindowTitle('Remove old authenticator')
             code_ui.actionBox.setText('There is already an authenticator associated with this account.'
-                                  ' Enter its revocation code to remove it.')
+                                      ' Enter its revocation code to remove it.')
             code_dialog.exec_()
             if endfunc.endfunc:
                 return
@@ -327,11 +328,11 @@ def add_authenticator():
     with open(os.path.join(mafiles_folder_path, 'manifest.json'), 'w') as manifest_file:
         manifest_file.write(json.dumps(
             {'periodic_checking': False, 'first_run': False, 'encrypted': False, 'periodic_checking_interval': 5,
-            'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
-            'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
-                        'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
+             'periodic_checking_checkall': False, 'auto_confirm_market_transactions': False,
+             'entries': [{'steamid': mwa.steam_id, 'encryption_iv': None, 'encryption_salt': None,
+                         'filename': mwa.steam_id + '.maFile'}], 'auto_confirm_trades': False}))
     Common.error_popup('This is your revocation code. Write it down physically and keep it. You will need it in case'
-                ' you lose your authenticator.', sa.secrets['revocation_code'])
+                       ' you lose your authenticator.', sa.secrets['revocation_code'])
     code_dialog = QtWidgets.QDialog()
     code_ui = PyUIs.PhoneDialog.Ui_Dialog()
     code_ui.setupUi(code_dialog)
@@ -429,7 +430,7 @@ def app_load():
                     manifest_entry_index = manifest['selected_account']
                 else:
                     ac_dialog = QtWidgets.QDialog()
-                    ac_ui = PyUIs.AccountChoserDialog.Ui_Dialog()
+                    ac_ui = PyUIs.AccountChooserDialog.Ui_Dialog()
                     ac_ui.setupUi(ac_dialog)
                     for i in valid_entries:
                         try:
@@ -518,7 +519,8 @@ def main(argv):  # TODO debug menubar actions
 
     app = QtWidgets.QApplication(argv)
     if '--test' in argv:
-        QtCore.QTimer.singleShot(3000, app.quit)
+        sys.exit()
+        # QtCore.QTimer.singleShot(3000, app.quit)
     main_window = QtWidgets.QMainWindow()
     main_ui = PyUIs.MainWindow.Ui_MainWindow()
     main_ui.setupUi(main_window)

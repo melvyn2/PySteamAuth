@@ -142,7 +142,28 @@ if action == 'build':
                          .replace('${USERNAME}', username)
                          .replace('${VERSION}', version))
         os.rename('PySteamAuth.dist', os.path.join('PySteamAuth.app', 'Contents', 'MacOS'))
-        os.chdir('..')
+        # Hotfix for issue Nuitka/Nuitka#516
+        os.chdir(os.path.join('PySteamAuth.app', 'Contents', 'MacOS'))
+        try:
+            libs = subprocess.check_output(['otool', '-L', '_ssl.so']).decode('utf-8').split('\n')
+            for i in libs[1:]:
+                if 'libssl' in i:
+                    target_lib = i.strip().split(' (')[0].replace('@executable_path', '.')
+                    break
+            else:
+                raise FileNotFoundError('could not find target lib path')
+            libs = subprocess.check_output(['otool', '-L', target_lib]).decode('utf-8').split('\n')
+            for i in libs[1:]:
+                if 'libcrypto' in i:
+                    static_lib = i.strip().split(' (')[0]
+                    break
+            else:
+                raise FileNotFoundError('could not find static lib path')
+            distributed_lib = os.path.join('@executable_path', os.path.basename(static_lib))
+            subprocess.check_output(['install_name_tool', '-change', static_lib, distributed_lib, target_lib])
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print('Warning: failed to patch statically linked libraries. Bundle may not work!')
+        os.chdir('../' * 4)
         os.mkdir('dist')
         os.rename(os.path.join('build', 'PySteamAuth.app'), os.path.join('dist', 'PySteamAuth.app'))
     else:
@@ -314,6 +335,14 @@ elif action == 'deploy':
     print('Using github-release at', gh_release)
 
     set_target = True
+    try:
+        rev_sha = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], check=True, stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+    except subprocess.CalledProcessError as e:
+        raise SystemExit('Failed to get revision sha\n' + e.stderr.decode('utf-8'))
+    except FileNotFoundError:
+        raise SystemExit('Failed to find git')
+
     if '-t' in sys.argv:
         try:
             tag = sys.argv[sys.argv.index('-t') + 1]
@@ -323,16 +352,9 @@ elif action == 'deploy':
         try:
             tag = subprocess.run(['git', 'describe', '--exact-match'], check=True, stderr=subprocess.PIPE,
                                  stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
-        except FileNotFoundError:
-            raise SystemExit('Failed to find git')
         except subprocess.CalledProcessError as e:
             if b'no tag exactly matches' in e.stderr:
-                try:
-                    tag = 'pre-' + subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], check=True,
-                                                  stderr=subprocess.PIPE, stdout=subprocess.PIPE) \
-                                                  .stdout.decode('utf-8').strip()
-                except subprocess.CalledProcessError as e1:
-                    raise SystemExit('Failed to create tag\n' + e1.stderr.decode('utf-8'))
+                tag = 'pre-' + rev_sha
             else:
                 raise SystemExit('Failed to fetch tag\n' + e.stderr.decode('utf-8'))
         else:
@@ -343,8 +365,7 @@ elif action == 'deploy':
 
     if prerelease and '-f' not in sys.argv:
         try:
-            if subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').strip() \
-                    != 'master':
+            if 'master' in subprocess.check_output(['git', 'branch', '--contains', rev_sha]).decode('utf-8').strip():
                 print('Not on master branch or tag; use -f to force')
                 sys.exit(0)
         except subprocess.CalledProcessError:

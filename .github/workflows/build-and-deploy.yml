@@ -50,6 +50,7 @@ jobs:
         run: python make.py deps
       - name: Build
         run: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && python make.py build --zip -v'
+        shell: cmd
       - name: Test
         run: python make.py test
       - run: go get github.com/aktau/github-release
