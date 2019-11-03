@@ -353,7 +353,7 @@ elif action == 'deploy':
             tag = subprocess.run(['git', 'describe', '--exact-match'], check=True, stderr=subprocess.PIPE,
                                  stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
         except subprocess.CalledProcessError as e:
-            if b'no tag exactly matches' in e.stderr:
+            if b'no tag exactly matches' in e.stderr or b'No names found' in e.stderr:
                 tag = 'pre-' + rev_sha
             else:
                 raise SystemExit('Failed to fetch tag\n' + e.stderr.decode('utf-8'))
