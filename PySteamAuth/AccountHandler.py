@@ -60,7 +60,7 @@ def full_refresh(sa):
 
 
 def get_mobilewebauth(sa, force_login=True):
-    if sa.backend.logged_on:
+    if getattr(sa, 'backend', False) and sa.backend.logged_on:
         return sa.backend
     if 'Session' in sa.secrets.keys():
         token = sa.secrets['Session'].get('OAuthToken', False)

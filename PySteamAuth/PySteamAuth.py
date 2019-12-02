@@ -381,17 +381,19 @@ def app_load():
     if not secrets:
         open_setup()
 
+    sa = guard.SteamAuthenticator(secrets=secrets)
+
     try:
         mwa = guard.MobileWebAuth(secrets['account_name'])
         mwa.oauth_login(oauth_token=secrets['Session']['OAuthToken'],
                         steam_id=FileHandler.manifest['entries'][FileHandler.manifest['selected_account']]['steamid'])
     except KeyError:
-        mwa = AccountHandler.get_mobilewebauth()  # TODO check if this even works
+        mwa = AccountHandler.get_mobilewebauth(sa)  # TODO check if this even works
         if not secrets['Session']:
             secrets['Session'] = {'OAuthToken': mwa.oauth_token}
+        else:
+            secrets['Session']['OAuthToken'] = mwa.oauth_token
         FileHandler.save_entry(secrets)
-
-    sa = guard.SteamAuthenticator(secrets=secrets, backend=mwa)
 
     main_window.setWindowTitle('PySteamAuth - ' + sa.secrets['account_name'])
     main_ui.codeBox.setText(sa.get_code())

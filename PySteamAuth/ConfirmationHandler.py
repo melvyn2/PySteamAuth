@@ -70,9 +70,8 @@ def generate_cookiejar(sa):
 def fetch_confirmations(sa):
     url = 'https://steamcommunity.com/mobileconf/conf'
     data = generate_query('conf', sa)
-    jar = generate_cookiejar(sa)
     try:
-        r = requests.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar, )
+        r = sa.backend.session.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()))
     except requests.exceptions.ConnectionError:
         Common.error_popup('Connection Error.')
         return []
@@ -106,7 +105,7 @@ def confirm(sa, conf, action):
     data.update({'cid': conf.id, 'ck': conf.key})
     jar = generate_cookiejar(sa)
     try:
-        r = requests.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
+        r = sa.backend.session.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
     except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
         Common.error_popup('Connection error.')
         return False
