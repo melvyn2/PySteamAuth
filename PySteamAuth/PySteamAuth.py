@@ -409,7 +409,7 @@ def app_load():
     main_ui.createBCodesButton.clicked.connect(lambda: backup_codes_popup(sa))
     main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete())
     main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(os.path.join(FileHandler.mafiles_path)))
-    main_ui.actionSwitch.triggered.connect(lambda c: switch_account(c))
+    # main_ui.actionSwitch.triggered.connect(lambda c: switch_account(c)) TODO
 
     code_timer = QtCore.QTimer(main_window)
     code_timer.setInterval(1000)
