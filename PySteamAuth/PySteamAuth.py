@@ -25,7 +25,7 @@ import subprocess
 import errno
 
 import requests
-from steam import guard
+from steam import guard, webauth
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 import PyUIs
@@ -281,7 +281,7 @@ def add_authenticator():
     if os.path.isdir(mafiles_folder_path):
         if any('maFile' in x for x in os.listdir(mafiles_folder_path)) or 'manifest.json'\
                 in os.listdir(mafiles_folder_path):
-            Common.error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it.')
+            Common.error_popup('The maFiles folder in the app folder is not empty.\nPlease remove it manually.')
             return
         else:
             shutil.rmtree(mafiles_folder_path)
@@ -365,6 +365,8 @@ def app_load():
     FileHandler.set_mafile_location()
     try:
         FileHandler.load_manifest()
+    except FileNotFoundError:
+        open_setup()
     except IOError as e:
         if not e.errno == errno.ENOENT:
             Common.error_popup('Failed to load maFiles at', FileHandler.mafiles_path)
@@ -387,7 +389,7 @@ def app_load():
         mwa = guard.MobileWebAuth(secrets['account_name'])
         mwa.oauth_login(oauth_token=secrets['Session']['OAuthToken'],
                         steam_id=FileHandler.manifest['entries'][FileHandler.manifest['selected_account']]['steamid'])
-    except KeyError:
+    except (KeyError, webauth.LoginIncorrect):
         mwa = AccountHandler.get_mobilewebauth(sa)  # TODO check if this even works
         if not secrets['Session']:
             secrets['Session'] = {'OAuthToken': mwa.oauth_token}
@@ -432,21 +434,23 @@ def app_load():
 
 
 def main(argv):  # TODO debug menubar actions
+    # noinspection PyGlobalUndefined
     global app, main_window, main_ui
 
     sys.argv = argv
 
-    signal.signal(signal.SIGINT, lambda x, y: app.exit(0))
-    signal.signal(signal.SIGTERM, lambda x, y: app.exit(0))
+    signal.signal(signal.SIGINT, lambda _, __: app.exit(0))
+    signal.signal(signal.SIGTERM, lambda _, __: app.exit(0))
 
     app = QtWidgets.QApplication(argv)
     if '--test' in argv:
         sys.exit()
-        # QtCore.QTimer.singleShot(3000, app.quit)
     main_window = QtWidgets.QMainWindow()
     main_ui = PyUIs.MainWindow.Ui_MainWindow()
     main_ui.setupUi(main_window)
     QtCore.QTimer.singleShot(0, app_load)
+    # if '--test' in argv:
+    #     QtCore.QTimer.singleShot(3000, app.quit)
     app.exec_()
 
 
@@ -454,4 +458,5 @@ if __name__ == '__main__':
     try:
         main(sys.argv)
     except KeyboardInterrupt:
+        # noinspection PyUnboundLocalVariable
         app.exit(0)

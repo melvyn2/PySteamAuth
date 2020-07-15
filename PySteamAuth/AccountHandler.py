@@ -125,7 +125,7 @@ def get_mobilewebauth(sa, force_login=True):
             captcha_ui.setupUi(captcha_dialog)
             captcha_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
             pixmap = QtGui.QPixmap()
-            pixmap.loadFromData(requests.get(user.captcha_url).text)
+            pixmap.loadFromData(requests.get(user.captcha_url).content)
             captcha_ui.captchaLabel.setPixmap(pixmap)
             while True:
                 captcha_dialog.exec_()

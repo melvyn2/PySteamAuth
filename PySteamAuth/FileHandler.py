@@ -137,8 +137,9 @@ def request_password():
             pw_wrong_anim.start()
             QtCore.QTimer.singleShot(pw_wrong_anim.duration(), lambda: password_ui.passwordBox.setDisabled(False))
         except IOError:
-            Common.error_popup('Failed to read encrypted entry data')
+            Common.error_popup('Failed to read entry data from file')
             password_dialog.close()
+
     password_dialog = QtWidgets.QDialog()
     password_ui = PyUIs.PasswordDialog.Ui_Dialog()
     password_ui.setupUi(password_dialog)

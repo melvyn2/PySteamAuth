@@ -3,4 +3,4 @@ cryptography
 PyQt5
 requests
 https://github.com/Nuitka/Nuitka/archive/fc25e8c25a573b98abed6123e86f9b08ab729a62.zip
-https://github.com/melvyn2/steam/archive/2ab38063da2f52c9d1c75013b16f17c0f7743896.zip
+https://github.com/melvyn2/steam/archive/3389f413b5fd64bc83e9c4b9a6edcb641331c2b3.zip
