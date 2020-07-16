@@ -224,7 +224,7 @@ def open_conf_dialog(sa):
 def add_authenticator():
     endfunc = Empty()
     endfunc.endfunc = False
-    mwa = AccountHandler.get_mobilewebauth()
+    mwa = AccountHandler.get_mobilewebauth(None)
     if not mwa:
         return
     sa = guard.SteamAuthenticator(backend=mwa)
@@ -389,6 +389,7 @@ def app_load():
         mwa = guard.MobileWebAuth(secrets['account_name'])
         mwa.oauth_login(oauth_token=secrets['Session']['OAuthToken'],
                         steam_id=FileHandler.manifest['entries'][FileHandler.manifest['selected_account']]['steamid'])
+        sa.backend = mwa
     except (KeyError, webauth.LoginIncorrect):
         mwa = AccountHandler.get_mobilewebauth(sa)  # TODO check if this even works
         if not secrets['Session']:
@@ -409,7 +410,7 @@ def app_load():
     main_ui.confListButton.clicked.connect(lambda: open_conf_dialog(sa))
     main_ui.removeButton.clicked.connect(lambda: remove_authenticator(sa))
     main_ui.createBCodesButton.clicked.connect(lambda: backup_codes_popup(sa))
-    main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete())
+    main_ui.removeBCodesButton.clicked.connect(lambda: backup_codes_delete(sa))
     main_ui.actionOpen_Current_maFile.triggered.connect(lambda c: open_path(os.path.join(FileHandler.mafiles_path)))
     # main_ui.actionSwitch.triggered.connect(lambda c: switch_account(c)) TODO
 
@@ -430,7 +431,7 @@ def app_load():
     main_window.show()
     main_window.raise_()
 
-    save_mafiles(sa)
+    # save_mafiles(sa)  TODO Implement this
 
 
 def main(argv):  # TODO debug menubar actions
