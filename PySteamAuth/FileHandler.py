@@ -13,13 +13,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import PyUIs
-import Common
-
 import sys
 import os
 import json
 import hashlib
+
+from typing import List
 
 from PyQt5 import QtWidgets, QtCore
 from steam import guard
@@ -29,6 +28,9 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.backends import default_backend
+
+import PyUIs
+import Common
 
 
 class Empty(object):
@@ -59,7 +61,7 @@ def load_manifest():
         manifest.update({'selected_account': 0})
 
 
-def load_entry(index=-1):
+def load_entry(index: int = -1):
     if index == -1:
         index = manifest['selected_account']
 
@@ -91,7 +93,7 @@ def load_entry(index=-1):
     return secrets
 
 
-def save_entry(secrets, index=-1):
+def save_entry(secrets: List, index: bool = -1):
     if index == -1:
         index = manifest['selected_account']
     if manifest['encrypted']:
@@ -116,7 +118,7 @@ def save_entry(secrets, index=-1):
             return False
 
 
-def remove_entry(index=-1):
+def remove_entry(index: bool = -1):
     if index == -1:
         index = manifest['selected_account']
     os.remove(manifest['selected_account']['filename'])
@@ -202,7 +204,7 @@ def request_password():
 #
 # def encrypt_entry():
 #     def _handle_pw():
-#         with open(os.path.join(mafiles_path, 'manifes'))  # TODO use global manifest
+#         with open(os.path.join(mafiles_path, 'manifest.json'))  # TODO use global manifest
 #         try:
 #             data = json.dumps(secrets, ensure_ascii=True).encode('ascii')
 #             iv = os.urandom(16)

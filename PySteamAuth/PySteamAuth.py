@@ -43,7 +43,7 @@ class Empty(object):
     pass
 
 
-def code_update(sa, code_box, code_bar):
+def code_update(sa: guard.SteamAuthenticator, code_box: QtWidgets.QTextEdit, code_bar: QtWidgets.QProgressBar):
     time = code_bar.value() - 1
     if time == 0:
         code_box.setText(sa.get_code())
@@ -59,7 +59,7 @@ def restart():
         os.execl(sys.executable, sys.executable, os.path.abspath(__file__))
 
 
-def open_path(path):
+def open_path(path: str):
     if sys.platform in ['windows', 'win32']:
         subprocess.Popen(['explorer', '/select', path])
     elif sys.platform == "darwin":
@@ -69,10 +69,11 @@ def open_path(path):
 
 
 def refresh_session_handler():
+    # TODO, also should probably be in acchandler?
     pass
 
 
-def backup_codes_popup(sa):
+def backup_codes_popup(sa: guard.SteamAuthenticator):
     if not sa.backend:
         mwa = AccountHandler.get_mobilewebauth(sa)
         if not mwa:
@@ -105,7 +106,7 @@ def backup_codes_popup(sa):
         Common.error_popup('No codes were generated or invalid code', 'Warning:')
 
 
-def backup_codes_delete(sa):
+def backup_codes_delete(sa: guard.SteamAuthenticator):
     if not sa.backend:
         mwa = AccountHandler.get_mobilewebauth(sa)
         if not mwa:
@@ -126,15 +127,17 @@ def backup_codes_delete(sa):
         Common.error_popup(str(e))
 
 
-def set_autoaccept(timer, sa, trades, markets):
+def set_autoaccept(timer: QtCore.QTimer, sa: guard.SteamAuthenticator, trades: bool, markets: bool):
     if trades or markets:
+        # The stubs don't contain the ConnectionType argument, even though it is in the Qt5 Docs
+        # noinspection PyArgumentList
         timer.timeout.connect(lambda: accept_all(sa, trades, markets, False), QtCore.Qt.QueuedConnection)
         timer.start()
     else:
         timer.stop()
 
 
-def accept_all(sa, trades=True, markets=True, others=True):
+def accept_all(sa: guard.SteamAuthenticator, trades: bool = True, markets: bool = True, others: bool = True):
     AccountHandler.refresh_session(sa)
     confs = ConfirmationHandler.fetch_confirmations(sa)
     for i in range(len(confs)):
@@ -149,7 +152,7 @@ def accept_all(sa, trades=True, markets=True, others=True):
     return ConfirmationHandler.confirm_multi(sa, confs, 'allow')
 
 
-def open_conf_dialog(sa):
+def open_conf_dialog(sa: guard.SteamAuthenticator):
     if not AccountHandler.refresh_session(sa):
         return
     info = Empty()
@@ -224,7 +227,7 @@ def open_conf_dialog(sa):
 def add_authenticator():
     endfunc = Empty()
     endfunc.endfunc = False
-    mwa = AccountHandler.get_mobilewebauth(None)
+    mwa = AccountHandler.get_mobilewebauth()
     if not mwa:
         return
     sa = guard.SteamAuthenticator(backend=mwa)
@@ -311,7 +314,7 @@ def add_authenticator():
             code_ui.msgBox.setText(str(e))
 
 
-def remove_authenticator(sa):
+def remove_authenticator(sa: guard.SteamAuthenticator):
     if not sa.backend:
         mwa = AccountHandler.get_mobilewebauth(sa)
         if not mwa:
@@ -345,6 +348,7 @@ def remove_authenticator(sa):
     del manifest['entries'][manifest_entry_index]
     save_mafiles()
     restart()
+
 
 def open_setup():
     while True:
@@ -391,7 +395,7 @@ def app_load():
                         steam_id=FileHandler.manifest['entries'][FileHandler.manifest['selected_account']]['steamid'])
         sa.backend = mwa
     except (KeyError, webauth.LoginIncorrect):
-        mwa = AccountHandler.get_mobilewebauth(sa)  # TODO check if this even works
+        mwa = AccountHandler.get_mobilewebauth(sa)
         if not secrets['Session']:
             secrets['Session'] = {'OAuthToken': mwa.oauth_token}
         else:

@@ -10,11 +10,15 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-import requests
-import requests.cookies
 import base64
 import json
 import re
+
+import steam.guard
+from typing import List
+
+import requests
+import requests.cookies
 
 import Common
 
@@ -24,11 +28,11 @@ class Empty:
 
 
 class Confirmation(object):
-    def __init__(self, conf_id, conf_key, conf_type, conf_creator, conf_icon_url, conf_description,
-                 conf_sub_description, conf_time):
+    def __init__(self, conf_id: int, conf_key: int, conf_type: int, conf_creator: int, conf_icon_url: str,
+                 conf_description: str, conf_sub_description: str, conf_time: int):
         self.id = conf_id
         self.key = conf_key
-        self.type = int(conf_type)
+        self.type = conf_type
         type_switch = {
             1: 'Generic',
             2: 'Trade',
@@ -42,20 +46,20 @@ class Confirmation(object):
         self.sub_description = conf_sub_description
         self.time = conf_time
 
-    def accept(self, sa):
+    def accept(self, sa: steam.guard.SteamAuthenticator):
         return confirm(sa, self, 'allow')
 
-    def deny(self, sa):
+    def deny(self, sa: steam.guard.SteamAuthenticator):
         return confirm(sa, self, 'cancel')
 
 
-def generate_query(tag, sa):
+def generate_query(sa: steam.guard.SteamAuthenticator, tag: str):
     return {'op': tag, 'p': sa.secrets['device_id'], 'a': sa.secrets['Session']['SteamID'],
             'k': base64.b64encode(sa.get_confirmation_key(tag)).decode('utf-8'), 't': sa.get_time(),
             'm': 'android', 'tag': tag}
 
 
-def generate_cookiejar(sa):
+def generate_cookiejar(sa: steam.guard.SteamAuthenticator):
     jar = requests.cookies.RequestsCookieJar()
     jar.set('mobileClientVersion', '0 (2.1.3)')
     jar.set('mobileClient', 'android')
@@ -67,16 +71,16 @@ def generate_cookiejar(sa):
     return jar
 
 
-def fetch_confirmations(sa):
+def fetch_confirmations(sa: steam.guard.SteamAuthenticator):
     url = 'https://steamcommunity.com/mobileconf/conf'
-    data = generate_query('conf', sa)
+    data = generate_query(sa, 'conf')
     try:
         r = sa.backend.session.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()))
     except requests.exceptions.ConnectionError:
         Common.error_popup('Connection Error.')
         return []
     # except requests.exceptions.InvalidSchema:
-    #     TODO Finish this
+    #     TODO Finish this, implement project wide
     #     pass
 
     # Used for testing purposes
@@ -87,25 +91,25 @@ def fetch_confirmations(sa):
     if '<div>Nothing to confirm</div>' in r.text:
         return []
     ret = []
-    pattern = '<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\d+)\" data-key=\"(\d+)\" ' \
-              'data-type=\"(\d)\" data-creator=\"(\d+)\" data-cancel=\"[a-zA-Z]+\" data-accept=\"[a-zA-Z]+\" >' \
-              '[\s]*?<div class=\"mobileconf_list_entry_content\">[\s]*?<div class=\"mobileconf_list_entry_icon\">' \
-              '[\s]*?(?:<div class=\"[a-zA-Z ]+\"><img src=\"(.*?)\" srcset=\".*? 1x, .*? 2x\"></div>)?[\s]*?</div>' \
-              '[\s]*?<div class=\"mobileconf_list_entry_description\">[\s]*?<div>(.*?)</div>[\s]*?<div>(.*?)</div>' \
-              '[\s]*?<div>(.*?)</div>[\s]*?</div>[\s]*?</div>'
+    # noinspection PyPep8
+    pattern = r'<div class=\"mobileconf_list_entry\" id=\"conf[0-9]+\" data-confid=\"(\d+)\" data-key=\"(\d+)\" ' \
+              r'data-type=\"(\d)\" data-creator=\"(\d+)\" data-cancel=\"[a-zA-Z]+\" data-accept=\"[a-zA-Z]+\" >' \
+              r'[\s]*?<div class=\"mobileconf_list_entry_content\">[\s]*?<div class=\"mobileconf_list_entry_icon\">' \
+              r'[\s]*?(?:<div class=\"[a-zA-Z ]+\"><img src=\"(.*?)\" srcset=\".*? 1x, .*? 2x\"></div>)?[\s]*?</div>' \
+              r'[\s]*?<div class=\"mobileconf_list_entry_description\">[\s]*?<div>(.*?)</div>[\s]*?<div>(.*?)</div>' \
+              r'[\s]*?<div>(.*?)</div>[\s]*?</div>[\s]*?</div>'
     for i in re.findall(pattern, r.text):
         ret.append(Confirmation(i[0], i[1], i[2], i[3], i[4].replace('.jpg', '_full.jpg'), re.sub('<[^<]+?>', '', i[5]),
                                 i[6], i[7]))
     return ret
 
 
-def confirm(sa, conf, action):
+def confirm(sa: steam.guard.SteamAuthenticator, conf: Confirmation, action: str):
     url = 'https://steamcommunity.com/mobileconf/ajaxop'
-    data = generate_query(action, sa)
+    data = generate_query(sa, action)
     data.update({'cid': conf.id, 'ck': conf.key})
-    jar = generate_cookiejar(sa)
     try:
-        r = sa.backend.session.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()), cookies=jar)
+        r = sa.backend.session.get(url, params="&".join("%s=%s" % (k, v) for k, v in data.items()))
     except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
         Common.error_popup('Connection error.')
         return False
@@ -115,14 +119,13 @@ def confirm(sa, conf, action):
         return False
 
 
-def confirm_multi(sa, confs, action):
+def confirm_multi(sa: steam.guard.SteamAuthenticator, confs: List[Confirmation], action: str):
     url = 'https://steamcommunity.com/mobileconf/multiajaxop'
-    data = generate_query(action, sa)
+    data = generate_query(sa, action)
     for i in confs:
         data.update({'cid[]': i.id, 'ck[]': i.key})
-    jar = generate_cookiejar(sa)
     try:
-        r = requests.post(url, data=data, cookies=jar)
+        r = sa.backend.requests.post(url, data=data)
     except (requests.exceptions.ConnectionError, json.decoder.JSONDecodeError):
         Common.error_popup('Connection error.')
         return False

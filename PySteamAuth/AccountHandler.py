@@ -13,12 +13,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 
 import requests
 import urllib.parse
-from steam import webauth
+from steam import webauth, guard
 from PyQt5 import QtWidgets, QtGui
-import json
 
 import PyUIs
 import Common
@@ -27,8 +27,11 @@ import Common
 class Empty:
     pass
 
+# TODO move global sa into a file level global here
 
-def refresh_session(sa):  # TODO only run this when steammobile://lostauth
+
+# TODO trigger only on steammobile://lostauth
+def refresh_session(sa: guard.SteamAuthenticator, recursed: bool = False):
     url = 'https://api.steampowered.com/IMobileAuthService/GetWGToken/v0001'
     try:
         r = requests.post(url, data={'access_token': urllib.parse.quote_plus(sa.secrets['Session']['OAuthToken'])})
@@ -40,15 +43,19 @@ def refresh_session(sa):  # TODO only run this when steammobile://lostauth
     except requests.exceptions.ConnectionError:
         Common.error_popup('Failed to refresh session (connection error).', 'Warning')
         return False
-    except (json.JSONDecodeError, KeyError):
-        Common.error_popup('Steam session expired. You will be prompted to sign back in.')
-        if full_refresh(sa):
-            return refresh_session(sa)
+    except (json.JSONDecodeError, KeyError) as e:
+        print(e)
+        if recursed:
+            Common.error_popup('Failed to use newly generated token.')
         else:
-            return False
+            Common.error_popup('Steam session token expired. You will be prompted to sign back in.')
+            if full_refresh(sa):
+                return refresh_session(sa, recursed=True)
+            else:
+                return False
 
 
-def full_refresh(sa):
+def full_refresh(sa: guard.SteamAuthenticator):
     mwa = get_mobilewebauth(sa, True)
     if not mwa:
         return False
@@ -59,7 +66,7 @@ def full_refresh(sa):
     return True
 
 
-def get_mobilewebauth(sa, force_login=True):
+def get_mobilewebauth(sa: guard.SteamAuthenticator = None, force_username: bool = True):
     if getattr(sa, 'backend', False) and sa.backend.logged_on:
         return sa.backend
     if 'Session' in sa.secrets.keys():
@@ -83,7 +90,7 @@ def get_mobilewebauth(sa, force_login=True):
     login_ui = PyUIs.LogInDialog.Ui_Dialog()
     login_ui.setupUi(login_dialog)
     login_ui.buttonBox.rejected.connect(lambda: setattr(endfunc, 'endfunc', True))
-    login_ui.usernameBox.setDisabled((force_login and (sa is not None)))
+    login_ui.usernameBox.setDisabled((force_username and (sa is not None)))
     if sa:
         login_ui.usernameBox.setText(sa.secrets['account_name'])
     # noinspection PyUnusedLocal
@@ -194,7 +201,8 @@ def get_mobilewebauth(sa, force_login=True):
                     break
         if user.logged_on:
             break
-    sa.backend = user
-    sa.secrets['Session']['OAuthToken'] = user.oauth_token
-    sa.secrets['Session']['SteamID'] = user.steam_id
+    # sa.backend = user
+    # sa.secrets['Session']['OAuthToken'] = user.oauth_token
+    # sa.secrets['Session']['SteamID'] = user.steam_id
+    # TODO save these on app close
     return user

@@ -18,7 +18,7 @@ from PyQt5 import QtWidgets
 import PyUIs
 
 
-def error_popup(message, header=None):
+def error_popup(message: str or BaseException, header=None):
     error_dialog = QtWidgets.QDialog()
     error_ui = PyUIs.ErrorDialog.Ui_Dialog()
     error_ui.setupUi(error_dialog)
